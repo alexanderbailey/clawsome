@@ -1,0 +1,71 @@
+<% layout('layout.eta', { title: it.title }) %>
+
+<div style="margin-bottom: 1rem;">
+  <a href="/summary">&larr; Back to summary</a>
+</div>
+
+<h2 style="margin-bottom: 0.5rem;"><%= it.context.name %></h2>
+
+<div class="card-meta" style="margin-bottom: 1rem;">
+  <% if (it.context.alive) { %>
+    <span class="badge badge-running">running</span>
+  <% } else { %>
+    <span class="badge badge-stopped">stopped</span>
+  <% } %>
+  <% if (it.context.profile) { %>
+    <span>Profile: <%= it.context.profile %></span>
+  <% } %>
+  <a class="btn" href="/logs/<%= it.context.id %>">View logs</a>
+  <% if (it.context.alive) { %>
+    <button class="btn btn-danger"
+            hx-delete="/api/contexts/<%= it.context.id %>"
+            hx-on::after-request="window.location='/summary'">
+      Stop
+    </button>
+  <% } %>
+</div>
+
+<% if (it.context.alive) { %>
+  <div class="live-view">
+    <img id="live-screenshot"
+         src="/api/contexts/<%= it.context.id %>/screenshot"
+         alt="Live view">
+  </div>
+
+  <script>
+    (function() {
+      const img = document.getElementById('live-screenshot');
+      const id = '<%= it.context.id %>';
+      setInterval(() => {
+        const next = new Image();
+        next.onload = () => { img.src = next.src; };
+        next.src = '/api/contexts/' + id + '/screenshot?t=' + Date.now();
+      }, 1500);
+    })();
+  </script>
+
+  <div class="log-container" hx-ext="sse" sse-connect="/sse/updates" id="mini-logs">
+    <div class="log-entry log-info" style="color: var(--text-muted);">Waiting for log entries...</div>
+  </div>
+
+  <script>
+    (function() {
+      const container = document.getElementById('mini-logs');
+      const id = '<%= it.context.id %>';
+      const source = new EventSource('/sse/updates');
+      source.addEventListener('log:new', (e) => {
+        const data = JSON.parse(e.data);
+        if (data.contextId !== id) return;
+        const div = document.createElement('div');
+        div.className = 'log-entry log-' + (data.level || 'info');
+        div.textContent = '[' + (data.level || 'info').toUpperCase() + '] ' + data.message;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+      });
+    })();
+  </script>
+<% } else { %>
+  <div class="empty-state">
+    <p>This context has been stopped.</p>
+  </div>
+<% } %>

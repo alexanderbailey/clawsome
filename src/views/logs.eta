@@ -1,0 +1,42 @@
+<% layout('layout.eta', { title: it.title }) %>
+
+<div style="margin-bottom: 1rem;">
+  <a href="/summary">&larr; Back to summary</a>
+  &middot;
+  <a href="/context/<%= it.contextId %>">Live view</a>
+</div>
+
+<h2 style="margin-bottom: 1rem;">Logs &mdash; <%= it.contextName %></h2>
+
+<div class="log-container" id="log-stream">
+  <% if (it.logs.length === 0) { %>
+    <div class="log-entry" style="color: var(--text-muted);">No logs yet.</div>
+  <% } %>
+  <% it.logs.forEach(log => { %>
+    <div class="log-entry log-<%= log.level %>">
+      <span class="log-time"><%= log.created_at %></span>
+      [<%= log.level.toUpperCase() %>] <%= log.message %>
+    </div>
+  <% }) %>
+</div>
+
+<script>
+  (function() {
+    const container = document.getElementById('log-stream');
+    const id = '<%= it.contextId %>';
+    const source = new EventSource('/sse/updates');
+    source.addEventListener('log:new', (e) => {
+      const data = JSON.parse(e.data);
+      if (data.contextId !== id) return;
+      const div = document.createElement('div');
+      div.className = 'log-entry log-' + (data.level || 'info');
+      const now = new Date().toISOString().replace('T', ' ').split('.')[0];
+      div.innerHTML = '<span class="log-time">' + now + '</span> '
+        + '[' + (data.level || 'info').toUpperCase() + '] ' + data.message;
+      container.appendChild(div);
+      container.scrollTop = container.scrollHeight;
+    });
+    // Scroll to bottom on load
+    container.scrollTop = container.scrollHeight;
+  })();
+</script>

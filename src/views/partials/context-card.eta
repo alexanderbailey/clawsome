@@ -1,0 +1,31 @@
+<div class="card" id="ctx-<%= it.ctx.id %>">
+  <img
+    class="card-thumb"
+    src="/api/contexts/<%= it.ctx.id %>/screenshot"
+    alt="<%= it.ctx.name %>"
+    loading="lazy"
+  >
+  <div class="card-body">
+    <div class="card-title"><%= it.ctx.name %></div>
+    <div class="card-meta">
+      <span class="badge badge-running">running</span>
+      <% if (it.ctx.profile) { %>
+        <span><%= it.ctx.profile %></span>
+      <% } %>
+      <% if (it.ctx.visible) { %>
+        <span>visible</span>
+      <% } %>
+    </div>
+  </div>
+  <div class="card-actions">
+    <a class="btn" href="/context/<%= it.ctx.id %>">View</a>
+    <a class="btn" href="/logs/<%= it.ctx.id %>">Logs</a>
+    <button class="btn btn-danger"
+            hx-delete="/api/contexts/<%= it.ctx.id %>"
+            hx-target="#ctx-<%= it.ctx.id %>"
+            hx-swap="outerHTML"
+            hx-confirm="Destroy this context?">
+      Stop
+    </button>
+  </div>
+</div>

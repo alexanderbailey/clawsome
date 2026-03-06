@@ -42,7 +42,7 @@ export async function createContext({ name, profile, visible }) {
     page = await context.newPage();
   }
 
-  const meta = { id, name, profile: profile || null, visible: !!visible, persistent: hasPersistent };
+  const meta = { id, name, profile: profile || null, visible: !!visible, persistent: !!hasPersistent };
   alive.set(id, { context, page, meta });
 
   // Persist to DB
