@@ -1,0 +1,10 @@
+services:
+  clawsome:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+      - ./profiles:/app/profiles
+    env_file: .env
+    restart: unless-stopped
