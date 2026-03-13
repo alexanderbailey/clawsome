@@ -1,0 +1,72 @@
+{% extends "layout.html" %}
+{% block content %}
+
+<div hx-ext="sse" sse-connect="/sse/updates">
+  <div id="context-list"
+       hx-get="/partials/context-list"
+       hx-trigger="sse:context:created, sse:context:destroyed"
+       hx-swap="innerHTML">
+
+    {% if contexts|length == 0 %}
+      <div class="empty-state">
+        <p>No active browser contexts.</p>
+        <p style="margin-top: 0.5rem; font-size: 0.85rem;">
+          Create one via the API: <code>POST /api/contexts</code>
+        </p>
+      </div>
+    {% else %}
+      <div class="grid">
+        {% for ctx in contexts %}
+          {% include "partials/context_card.html" %}
+        {% endfor %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  (function() {
+    var conns = {};
+    var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+
+    function connectCard(card) {
+      var id = card.id.replace('ctx-', '');
+      if (conns[id]) return;
+      var img = card.querySelector('.card-thumb');
+      if (!img) return;
+      var ws = new WebSocket(proto + '//' + location.host + '/ws/screenshots/' + id);
+      ws.binaryType = 'blob';
+      ws.onmessage = function(e) {
+        var url = URL.createObjectURL(e.data);
+        img.onload = function() { URL.revokeObjectURL(url); };
+        img.src = url;
+      };
+      ws.onclose = function() { delete conns[id]; };
+      conns[id] = ws;
+    }
+
+    function sync() {
+      var cards = document.querySelectorAll('#context-list .card');
+      var active = {};
+      cards.forEach(function(card) {
+        var id = card.id.replace('ctx-', '');
+        active[id] = true;
+        connectCard(card);
+      });
+      for (var id in conns) {
+        if (!active[id]) {
+          conns[id].close();
+          delete conns[id];
+        }
+      }
+    }
+
+    sync();
+
+    document.body.addEventListener('htmx:afterSwap', function(e) {
+      if (e.detail.target.id === 'context-list') sync();
+    });
+  })();
+</script>
+
+{% endblock %}

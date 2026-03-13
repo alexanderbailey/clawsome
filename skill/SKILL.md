@@ -26,12 +26,11 @@ Use `curl` via bash to interact with the API. Always parse JSON responses to ext
 ```bash
 curl -s -X POST http://localhost:3000/api/contexts \
   -H "Content-Type: application/json" \
-  -d '{"name": "TASK_DESCRIPTION", "profile": "PROFILE_NAME_OR_NULL", "visible": false}'
+  -d '{"name": "TASK_DESCRIPTION", "profile": "PROFILE_NAME_OR_NULL"}'
 ```
 
 - `name`: a short description of the task
 - `profile`: use a saved login profile (e.g. "amazon", "github") or omit for no profile
-- `visible`: set `true` if the user wants to watch the session on their TV
 
 Returns: `{"id": "...", "name": "...", ...}`
 
@@ -98,7 +97,6 @@ Always destroy contexts when tasks are complete to free resources.
 
 - Always create a context before performing any browser actions.
 - Use profiles for sites that require login (amazon, github, banking, etc.).
-- Set `visible: true` when the user explicitly wants to watch the session.
 - Log each significant step so the dashboard stays informative.
 - Handle errors gracefully — if a selector isn't found, try alternatives or report the issue.
 - Destroy contexts when done, even if the task fails.

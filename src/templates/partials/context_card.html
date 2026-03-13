@@ -1,0 +1,26 @@
+<div class="card" id="ctx-{{ ctx.id }}">
+  <img
+    class="card-thumb"
+    src="/api/contexts/{{ ctx.id }}/screenshot"
+    alt="{{ ctx.name }}"
+  >
+  <div class="card-body">
+    <div class="card-title">{{ ctx.name }}</div>
+    <div class="card-meta">
+      <span class="badge badge-running">running</span>
+      {% if ctx.profile %}
+        <span>{{ ctx.profile }}</span>
+      {% endif %}
+    </div>
+  </div>
+  <div class="card-actions">
+    <a class="btn" href="/context/{{ ctx.id }}">View</a>
+    <a class="btn" href="/logs/{{ ctx.id }}">Logs</a>
+    <button class="btn btn-danger"
+            hx-delete="/api/contexts/{{ ctx.id }}"
+            hx-swap="none"
+            hx-confirm="Destroy this context?">
+      Stop
+    </button>
+  </div>
+</div>

@@ -2,7 +2,6 @@ CREATE TABLE IF NOT EXISTS contexts (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   profile TEXT,
-  visible INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'running',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))

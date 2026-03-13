@@ -1,46 +1,49 @@
-<% layout('layout.eta', { title: it.title }) %>
+{% extends "layout.html" %}
+{% block content %}
 
 <div style="margin-bottom: 1rem;">
   <a href="/summary">&larr; Back to summary</a>
 </div>
 
-<h2 style="margin-bottom: 0.5rem;"><%= it.context.name %></h2>
+<h2 style="margin-bottom: 0.5rem;">{{ context.name }}</h2>
 
 <div class="card-meta" style="margin-bottom: 1rem;">
-  <% if (it.context.alive) { %>
+  {% if context.alive %}
     <span class="badge badge-running">running</span>
-  <% } else { %>
+  {% else %}
     <span class="badge badge-stopped">stopped</span>
-  <% } %>
-  <% if (it.context.profile) { %>
-    <span>Profile: <%= it.context.profile %></span>
-  <% } %>
-  <a class="btn" href="/logs/<%= it.context.id %>">View logs</a>
-  <% if (it.context.alive) { %>
+  {% endif %}
+  {% if context.profile %}
+    <span>Profile: {{ context.profile }}</span>
+  {% endif %}
+  <a class="btn" href="/logs/{{ context.id }}">View logs</a>
+  {% if context.alive %}
     <button class="btn btn-danger"
-            hx-delete="/api/contexts/<%= it.context.id %>"
+            hx-delete="/api/contexts/{{ context.id }}"
             hx-on::after-request="window.location='/summary'">
       Stop
     </button>
-  <% } %>
+  {% endif %}
 </div>
 
-<% if (it.context.alive) { %>
+{% if context.alive %}
   <div class="live-view">
     <img id="live-screenshot"
-         src="/api/contexts/<%= it.context.id %>/screenshot"
+         src="/api/contexts/{{ context.id }}/screenshot"
          alt="Live view">
   </div>
 
   <script>
     (function() {
       const img = document.getElementById('live-screenshot');
-      const id = '<%= it.context.id %>';
-      setInterval(() => {
-        const next = new Image();
-        next.onload = () => { img.src = next.src; };
-        next.src = '/api/contexts/' + id + '/screenshot?t=' + Date.now();
-      }, 1500);
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const ws = new WebSocket(proto + '//' + location.host + '/ws/screenshots/{{ context.id }}');
+      ws.binaryType = 'blob';
+      ws.onmessage = (e) => {
+        const url = URL.createObjectURL(e.data);
+        img.onload = () => URL.revokeObjectURL(url);
+        img.src = url;
+      };
     })();
   </script>
 
@@ -51,7 +54,7 @@
   <script>
     (function() {
       const container = document.getElementById('mini-logs');
-      const id = '<%= it.context.id %>';
+      const id = '{{ context.id }}';
       const source = new EventSource('/sse/updates');
       source.addEventListener('log:new', (e) => {
         const data = JSON.parse(e.data);
@@ -64,8 +67,10 @@
       });
     })();
   </script>
-<% } else { %>
+{% else %}
   <div class="empty-state">
     <p>This context has been stopped.</p>
   </div>
-<% } %>
+{% endif %}
+
+{% endblock %}

@@ -1,29 +1,30 @@
-<% layout('layout.eta', { title: it.title }) %>
+{% extends "layout.html" %}
+{% block content %}
 
 <div style="margin-bottom: 1rem;">
   <a href="/summary">&larr; Back to summary</a>
   &middot;
-  <a href="/context/<%= it.contextId %>">Live view</a>
+  <a href="/context/{{ context_id }}">Live view</a>
 </div>
 
-<h2 style="margin-bottom: 1rem;">Logs &mdash; <%= it.contextName %></h2>
+<h2 style="margin-bottom: 1rem;">Logs &mdash; {{ context_name }}</h2>
 
 <div class="log-container" id="log-stream">
-  <% if (it.logs.length === 0) { %>
+  {% if logs|length == 0 %}
     <div class="log-entry" style="color: var(--text-muted);">No logs yet.</div>
-  <% } %>
-  <% it.logs.forEach(log => { %>
-    <div class="log-entry log-<%= log.level %>">
-      <span class="log-time"><%= log.created_at %></span>
-      [<%= log.level.toUpperCase() %>] <%= log.message %>
+  {% endif %}
+  {% for log in logs %}
+    <div class="log-entry log-{{ log.level }}">
+      <span class="log-time">{{ log.created_at }}</span>
+      [{{ log.level|upper }}] {{ log.message }}
     </div>
-  <% }) %>
+  {% endfor %}
 </div>
 
 <script>
   (function() {
     const container = document.getElementById('log-stream');
-    const id = '<%= it.contextId %>';
+    const id = '{{ context_id }}';
     const source = new EventSource('/sse/updates');
     source.addEventListener('log:new', (e) => {
       const data = JSON.parse(e.data);
@@ -36,7 +37,8 @@
       container.appendChild(div);
       container.scrollTop = container.scrollHeight;
     });
-    // Scroll to bottom on load
     container.scrollTop = container.scrollHeight;
   })();
 </script>
+
+{% endblock %}
