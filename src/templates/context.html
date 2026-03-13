@@ -68,8 +68,23 @@
     })();
   </script>
 {% else %}
-  <div class="empty-state">
-    <p>This context has been stopped.</p>
+  {% if screenshots|length == 0 %}
+    <div class="empty-state">
+      <p>This context has been stopped.</p>
+    </div>
+  {% endif %}
+{% endif %}
+
+{% if screenshots|length > 0 %}
+  <h3 style="margin-top: 1.5rem; margin-bottom: 0.75rem;">Screenshots ({{ screenshots|length }})</h3>
+  <div class="screenshot-grid">
+    {% for s in screenshots %}
+      <a class="screenshot-thumb" href="/api/contexts/{{ context.id }}/screenshots/{{ s.filename }}" target="_blank">
+        <img src="/api/contexts/{{ context.id }}/screenshots/{{ s.filename }}"
+             alt="{{ s.timestamp }}" loading="lazy">
+        <span class="screenshot-time">{{ s.timestamp }}</span>
+      </a>
+    {% endfor %}
   </div>
 {% endif %}
 

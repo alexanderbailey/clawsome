@@ -4,7 +4,7 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from ..browser.contexts import list_alive_contexts, get_alive_context
+from ..browser.contexts import list_alive_contexts, get_alive_context, list_screenshots
 from ..db import get_logs_by_context, get_context
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
@@ -27,6 +27,7 @@ async def summary(request: Request):
 
 @router.get("/context/{ctx_id}", response_class=HTMLResponse)
 async def context_view(request: Request, ctx_id: str):
+    screenshots = list_screenshots(ctx_id)
     entry = get_alive_context(ctx_id)
     if not entry:
         db_ctx = get_context(ctx_id)
@@ -35,13 +36,13 @@ async def context_view(request: Request, ctx_id: str):
             context["alive"] = False
             return templates.TemplateResponse(
                 "context.html",
-                {"request": request, "title": db_ctx["name"], "context": context},
+                {"request": request, "title": db_ctx["name"], "context": context, "screenshots": screenshots},
             )
         return HTMLResponse("Context not found", status_code=404)
     context = {**entry["meta"], "alive": True}
     return templates.TemplateResponse(
         "context.html",
-        {"request": request, "title": entry["meta"]["name"], "context": context},
+        {"request": request, "title": entry["meta"]["name"], "context": context, "screenshots": screenshots},
     )
 
 

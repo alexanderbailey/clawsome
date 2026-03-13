@@ -1,4 +1,6 @@
+import time
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .manager import get_browser, get_playwright, LAUNCH_ARGS
@@ -6,17 +8,71 @@ from ..db import insert_context, update_context_status, insert_log
 
 ROOT = Path(__file__).parent.parent.parent
 PROFILES_DIR = ROOT / "profiles"
+SCREENSHOTS_DIR = ROOT / "data" / "screenshots"
 
 # In-memory map: id -> { context, page, meta }
 _alive: dict[str, dict] = {}
+
+# Uploaded screenshots for external contexts: id -> png bytes
+_screenshots: dict[str, bytes] = {}
+
+# Throttle disk saves: id -> last save timestamp
+_last_save: dict[str, float] = {}
+_SAVE_INTERVAL = 1.0  # minimum seconds between saves per context
+
+
+def _save_screenshot(ctx_id: str, png: bytes, *, force: bool = False):
+    now = time.time()
+    if not force and ctx_id in _last_save and (now - _last_save[ctx_id]) < _SAVE_INTERVAL:
+        return
+    _last_save[ctx_id] = now
+    d = SCREENSHOTS_DIR / ctx_id
+    d.mkdir(parents=True, exist_ok=True)
+    ts = int(now * 1000)
+    (d / f"{ts}.png").write_bytes(png)
+
+
+def list_screenshots(ctx_id: str) -> list[dict]:
+    d = SCREENSHOTS_DIR / ctx_id
+    if not d.exists():
+        return []
+    files = sorted(d.glob("*.png"), reverse=True)
+    result = []
+    for f in files:
+        ts_ms = int(f.stem)
+        ts = datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc)
+        result.append({
+            "filename": f.name,
+            "timestamp": ts.strftime("%Y-%m-%d %H:%M:%S"),
+        })
+    return result
+
+
+def get_saved_screenshot(ctx_id: str, filename: str) -> bytes:
+    path = SCREENSHOTS_DIR / ctx_id / filename
+    if not path.exists() or not path.name.endswith(".png"):
+        raise ValueError(f"Screenshot not found: {filename}")
+    return path.read_bytes()
 
 STEALTH_SCRIPT = """
 Object.defineProperty(navigator, 'webdriver', { get: () => false });
 """
 
 
-async def create_context(*, name: str, profile: str | None = None) -> dict:
+async def create_context(*, name: str, profile: str | None = None, external: bool = False) -> dict:
     ctx_id = str(uuid.uuid4())
+
+    if external:
+        meta = {
+            "id": ctx_id,
+            "name": name,
+            "profile": None,
+            "persistent": False,
+            "external": True,
+        }
+        _alive[ctx_id] = {"context": None, "page": None, "meta": meta}
+        insert_context(id=ctx_id, name=name, profile=None)
+        return meta
 
     profile_path = PROFILES_DIR / profile if profile else None
     has_persistent = profile_path is not None and profile_path.exists()
@@ -42,6 +98,7 @@ async def create_context(*, name: str, profile: str | None = None) -> dict:
         "name": name,
         "profile": profile or None,
         "persistent": has_persistent,
+        "external": False,
     }
     _alive[ctx_id] = {"context": context, "page": page, "meta": meta}
 
@@ -68,11 +125,24 @@ async def navigate_to(
     return {"url": entry["page"].url}
 
 
+def upload_screenshot(ctx_id: str, png: bytes):
+    if ctx_id not in _alive:
+        raise ValueError(f"Context {ctx_id} not found")
+    _screenshots[ctx_id] = png
+    _save_screenshot(ctx_id, png, force=True)
+
+
 async def take_screenshot(ctx_id: str) -> bytes:
     entry = _alive.get(ctx_id)
     if not entry:
         raise ValueError(f"Context {ctx_id} not found")
-    return await entry["page"].screenshot(type="png")
+    if entry["meta"].get("external"):
+        if ctx_id in _screenshots:
+            return _screenshots[ctx_id]
+        raise ValueError(f"No screenshot available for context {ctx_id}")
+    png = await entry["page"].screenshot(type="png")
+    _save_screenshot(ctx_id, png)
+    return png
 
 
 async def exec_action(
@@ -159,8 +229,11 @@ async def destroy_context(ctx_id: str):
     if not entry:
         raise ValueError(f"Context {ctx_id} not found")
 
-    await entry["context"].close()
+    if entry["context"]:
+        await entry["context"].close()
     del _alive[ctx_id]
+    _screenshots.pop(ctx_id, None)
+    _last_save.pop(ctx_id, None)
 
     update_context_status(ctx_id, "stopped")
 

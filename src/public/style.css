@@ -139,3 +139,38 @@ header h1 { font-size: 1.25rem; font-weight: 600; }
   padding: 4rem 1rem;
   color: var(--text-muted);
 }
+
+.screenshot-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.5rem;
+}
+
+.screenshot-thumb {
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.screenshot-thumb:hover {
+  border-color: var(--accent);
+  text-decoration: none;
+}
+
+.screenshot-thumb img {
+  width: 100%;
+  aspect-ratio: 16/9;
+  object-fit: cover;
+  display: block;
+}
+
+.screenshot-time {
+  display: block;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: center;
+}

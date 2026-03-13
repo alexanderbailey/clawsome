@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 
@@ -8,6 +8,9 @@ from ..browser.contexts import (
     list_alive_contexts,
     navigate_to,
     take_screenshot,
+    upload_screenshot,
+    list_screenshots,
+    get_saved_screenshot,
     exec_action,
     destroy_context,
 )
@@ -20,6 +23,7 @@ router = APIRouter(prefix="/api")
 class CreateContextBody(BaseModel):
     name: str
     profile: str | None = None
+    external: bool = False
 
 
 class GotoBody(BaseModel):
@@ -48,7 +52,7 @@ async def list_contexts_route():
 
 @router.post("/contexts", status_code=201)
 async def create_context_route(body: CreateContextBody):
-    meta = await create_context(name=body.name, profile=body.profile)
+    meta = await create_context(name=body.name, profile=body.profile, external=body.external)
     insert_log(context_id=meta["id"], level="info", message=f"Context created: {body.name}")
     broadcast(event="context:created", data=meta)
     return meta
@@ -94,6 +98,32 @@ async def screenshot_route(ctx_id: str):
     try:
         buffer = await take_screenshot(ctx_id)
         return Response(content=buffer, media_type="image/png")
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.post("/contexts/{ctx_id}/screenshot", status_code=204)
+async def upload_screenshot_route(ctx_id: str, request: Request):
+    body = await request.body()
+    if not body:
+        raise HTTPException(status_code=400, detail="PNG body required")
+    try:
+        upload_screenshot(ctx_id, body)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return Response(status_code=204)
+
+
+@router.get("/contexts/{ctx_id}/screenshots")
+async def list_screenshots_route(ctx_id: str):
+    return list_screenshots(ctx_id)
+
+
+@router.get("/contexts/{ctx_id}/screenshots/{filename}")
+async def get_screenshot_file_route(ctx_id: str, filename: str):
+    try:
+        png = get_saved_screenshot(ctx_id, filename)
+        return Response(content=png, media_type="image/png")
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 

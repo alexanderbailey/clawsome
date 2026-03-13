@@ -15,8 +15,11 @@ async def screenshot_ws(websocket: WebSocket, ctx_id: str):
             if not get_alive_context(ctx_id):
                 await websocket.close(code=1000, reason="Context gone")
                 break
-            png = await take_screenshot(ctx_id)
-            await websocket.send_bytes(png)
+            try:
+                png = await take_screenshot(ctx_id)
+                await websocket.send_bytes(png)
+            except ValueError:
+                pass  # no screenshot yet (external context)
             await asyncio.sleep(1.5)
     except (WebSocketDisconnect, Exception):
         pass
