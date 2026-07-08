@@ -1,6 +1,6 @@
 ---
 name: clawsome
-description: Control Playwright browser sessions on your Pi via the Clawsome automation service
+description: Control Playwright browser sessions via the Clawsome automation service
 user-invocable: true
 metadata: {"openclaw":{"os":["linux","darwin"],"requires":{"bins":["curl"]}}}
 ---

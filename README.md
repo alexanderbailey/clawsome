@@ -16,20 +16,21 @@
 <p align="center">
   <a href="#quick-start">Quick Start</a> &middot;
   <a href="#rest-api">API Reference</a> &middot;
+  <a href="#example-setups">Example Setups</a> &middot;
   <a href="#playwright-test-integration">Test Integration</a> &middot;
   <a href="#docker">Docker</a>
 </p>
 
 ---
 
-Clawsome is a browser automation service for [OpenClaw](https://openclaw.ai). It runs headless Chromium, exposes a REST API for browser control, and serves a real-time dashboard with live screenshots via WebSocket and SSE.
+Clawsome is a browser automation service you control over a REST API — from any AI agent that can shell out to `curl` (OpenClaw, Claude Code, a custom script), or from your own tooling directly. It runs headless Chromium, exposes a REST API for browser control, and serves a real-time dashboard with live screenshots via WebSocket and SSE.
 
 **Two main use cases:**
 
-- **OpenClaw integration** — AI-driven browser tasks triggered via Telegram, executed by Clawsome, streamed to the dashboard
+- **AI-driven browser tasks** — an agent creates a context, drives it through the API, and you watch the task happen live on the dashboard. [OpenClaw](https://openclaw.ai) and Claude Code are two examples below; anything that can run `curl` works the same way.
 - **Playwright test monitoring** — run your test suite normally and watch every test live on the dashboard with real-time screenshots and logs
 
-Designed to run on a Raspberry Pi 5 (ARM64), but works anywhere Python and Chromium do.
+Runs anywhere Python and Chromium can — no particular OS or hardware assumed.
 
 ## Quick Start
 
@@ -82,7 +83,7 @@ Data and profiles are persisted via volumes (`./data` and `./profiles`).
 
 ```
                          ┌──────────────────┐
-  Telegram / curl ──────►│   REST API       │
+   Agent / curl ────────►│   REST API       │
                          │   /api/contexts  │
                          └────────┬─────────┘
                                   │
@@ -247,9 +248,21 @@ If Clawsome is unreachable, tests run normally with no errors or side effects.
 
 **SSE events:** `context:created`, `context:destroyed`, `context:updated`, `log:new`
 
-## Connecting to OpenClaw
+## Example Setups
 
-Clawsome integrates with [OpenClaw](https://openclaw.ai) as a skill. Copy the skill definition into your workspace:
+The API is generic, but here's what people build with it:
+
+- **Phone → agent → TV.** Message OpenClaw from your phone (Telegram, its web UI, whatever you've wired up). OpenClaw calls the Clawsome skill to run the task; the Pi in the living room runs Clawsome and drives a browser; the dashboard is left open full-screen on a TV plugged into that Pi, so you watch the task execute live without touching a laptop.
+- **Claude Code as an ad-hoc browser operator.** Mid coding-session, ask Claude Code to "log into staging with the `staging` profile and check the new invoice page renders" — it drives the REST API with `curl` (via the same skill you'd give OpenClaw, or ad hoc), and you watch it work on `/summary` instead of trusting a text summary.
+- **CI test monitoring.** Point `reporter/fixture.js` at a Clawsome instance and open `/summary` during a deploy — every Playwright test in the suite shows up as a live tile with screenshots, so a flaky test is visible while it's happening instead of buried in a CI log afterward.
+
+## AI Agent Integrations
+
+Clawsome has no special dependency on any particular agent — it's a REST API, so anything that can run `curl` can drive it (see [REST API](#rest-api) above). These two are just the integrations that exist today.
+
+### OpenClaw
+
+Clawsome ships as a skill for [OpenClaw](https://openclaw.ai). Copy the skill definition into your workspace:
 
 ```bash
 cp -r skill/ ~/.openclaw/workspace/skills/clawsome/
@@ -257,9 +270,21 @@ cp -r skill/ ~/.openclaw/workspace/skills/clawsome/
 ln -s "$(pwd)/skill" ~/.openclaw/workspace/skills/clawsome
 ```
 
-OpenClaw will detect the skill on its next reload. Browser automation commands sent through Telegram will be routed to the Clawsome API.
+OpenClaw will detect the skill on its next reload, and browser automation commands you send it (from wherever you message OpenClaw — Telegram, its web UI, etc.) will be routed to the Clawsome API.
 
 If Clawsome runs on a different host, edit `skill/SKILL.md` and replace `localhost:3000` with the actual address.
+
+### Claude Code (and other coding agents)
+
+The skill in `skill/` isn't OpenClaw-specific — it's just frontmatter and `curl` instructions, so the same file works as a Claude Code skill too:
+
+```bash
+cp -r skill/ .claude/skills/clawsome/
+# or, to make it available across projects:
+cp -r skill/ ~/.claude/skills/clawsome/
+```
+
+You don't have to install it, either. Any agent with shell access — Claude Code, Cursor, Copilot CLI — can be pointed at the [REST API](#rest-api) reference above and drive Clawsome with `curl` directly, no skill required.
 
 ## License
 
