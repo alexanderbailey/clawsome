@@ -8,3 +8,4 @@ plans/
 .env
 *.png
 !clawsome.png
+!docs/screenshots/*.png
