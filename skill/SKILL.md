@@ -1,15 +1,15 @@
 ---
 name: clawsome
-description: Control Playwright browser sessions via the Clawsome automation service
+description: Drive a real browser through the Clawsome automation service, with live progress on the Clawsome dashboard. Use when the user names Clawsome, or asks to browse, check, or screenshot a live website in a watchable session. Not needed for Playwright test runs, which the Clawsome reporter fixture streams to the dashboard on its own.
 user-invocable: true
-metadata: {"openclaw":{"os":["linux","darwin"],"requires":{"bins":["curl"]}}}
+metadata: {"openclaw":{"requires":{"bins":["curl"]}}}
 ---
 
-# Clawsome — Browser Automation
+# Clawsome Browser Automation
 
 You control a Playwright browser automation service. The service runs at `http://localhost:3000` (adjust if different).
 
-Use `curl` via bash to interact with the API. Always parse JSON responses to extract IDs and results.
+Interact with the API over HTTP. The examples below use `curl` via bash, but any HTTP client works. Always parse JSON responses to extract IDs and results.
 
 ## Workflow
 
@@ -51,11 +51,11 @@ curl -s -X POST http://localhost:3000/api/contexts/CONTEXT_ID/exec \
 ```
 
 Available actions:
-- `click` — click an element. Requires `selector`.
-- `type` — fill a text field. Requires `selector` and `value`.
-- `select` — select a dropdown option. Requires `selector` and `value`.
-- `wait` — wait for an element to appear. Requires `selector`.
-- `evaluate` — run JavaScript in the page. Use `script` instead of `selector`.
+- `click`: click an element. Requires `selector`.
+- `type`: fill a text field. Requires `selector` and `value`.
+- `select`: select a dropdown option. Requires `selector` and `value`.
+- `wait`: wait for an element to appear. Requires `selector`.
+- `evaluate`: run JavaScript in the page. Use `script` instead of `selector`.
 
 ### Take a screenshot
 
@@ -98,6 +98,6 @@ Always destroy contexts when tasks are complete to free resources.
 - Always create a context before performing any browser actions.
 - Use profiles for sites that require login (amazon, github, banking, etc.).
 - Log each significant step so the dashboard stays informative.
-- Handle errors gracefully — if a selector isn't found, try alternatives or report the issue.
+- Handle errors gracefully. If a selector isn't found, try alternatives or report the issue.
 - Destroy contexts when done, even if the task fails.
 - The dashboard is viewable at `http://localhost:3000/summary`.
