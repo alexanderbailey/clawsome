@@ -1,7 +1,7 @@
 [project]
 name = "clawsome"
 version = "0.1.0"
-description = "Playwright browser automation dashboard for OpenClaw"
+description = "Drive headless Chromium over a REST API and watch it live in a dashboard"
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.135.1",

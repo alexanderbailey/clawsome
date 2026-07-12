@@ -28,7 +28,7 @@ Clawsome is a browser automation service you control over a REST API, from any A
 
 **Two main use cases:**
 
-- **AI-driven browser tasks.** An agent creates a context, drives it through the API, and you watch the task happen live on the dashboard. [OpenClaw](https://openclaw.ai) and Claude Code are two examples below; anything that can make an HTTP request works the same way.
+- **AI-driven browser tasks.** An agent creates a context, drives it through the API, and you watch the task happen live on the dashboard. OpenClaw and Claude Code are two examples below; anything that can make an HTTP request works the same way.
 - **Playwright test monitoring.** Run your test suite normally and watch every test live on the dashboard with real-time screenshots and logs.
 
 Runs anywhere Python and Chromium can. No particular OS or hardware assumed.
@@ -170,8 +170,8 @@ All endpoints are under `/api/`.
 
 | Method | Endpoint | Body | Description |
 | --- | --- | --- | --- |
-| `POST` | `/api/contexts/:id/goto` | `{ url }` | Navigate to a URL |
-| `POST` | `/api/contexts/:id/exec` | `{ action, selector?, value?, script? }` | Execute a page action |
+| `POST` | `/api/contexts/:id/goto` | `{ url, timeout?, waitUntil? }` | Navigate to a URL |
+| `POST` | `/api/contexts/:id/exec` | `{ action, selector?, value?, script?, timeout? }` | Execute a page action |
 
 <details>
 <summary>Supported exec actions</summary>
@@ -183,6 +183,10 @@ All endpoints are under `/api/`.
 | `select` | `selector`, `value` | Choose a dropdown option |
 | `wait` | `selector` | Wait for an element to appear |
 | `evaluate` | `script` | Run JavaScript in the page |
+| `waitForNavigation` | - | Wait for the page URL to settle. Pass a glob in `selector` to wait for a specific URL (default `**/*`) |
+| `solveTurnstile` | - | Click through a Cloudflare Turnstile checkbox if one is present, otherwise proceed |
+
+All actions accept an optional `timeout` in milliseconds.
 
 </details>
 
@@ -285,7 +289,7 @@ The API is generic, but here's what you can do with it:
 
 ## AI Agent Integration
 
-Clawsome has no dependency on any particular agent: it's a REST API, and anything that can make an HTTP request can drive it. For agents that support skills, `skill/` contains a ready-made one that teaches the full workflow (create a context, navigate, act, log progress, clean up). The same file works for [OpenClaw](https://openclaw.ai), Claude Code, and anything else that reads the SKILL.md format:
+Clawsome has no dependency on any particular agent: it's a REST API, and anything that can make an HTTP request can drive it. For agents that support skills, `skill/` contains a ready-made one that teaches the full workflow (create a context, navigate, act, log progress, clean up). The same file works for OpenClaw, Claude Code, and anything else that reads the SKILL.md format:
 
 ```bash
 # OpenClaw

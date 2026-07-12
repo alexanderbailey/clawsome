@@ -56,6 +56,10 @@ Available actions:
 - `select`: select a dropdown option. Requires `selector` and `value`.
 - `wait`: wait for an element to appear. Requires `selector`.
 - `evaluate`: run JavaScript in the page. Use `script` instead of `selector`.
+- `waitForNavigation`: wait for the page URL to settle after a click or form submit. Pass a URL glob in `selector` to wait for a specific destination.
+- `solveTurnstile`: click through a Cloudflare Turnstile checkbox if the page shows one. Returns `{"status": "no_challenge"}` when there is nothing to solve.
+
+All actions accept an optional `timeout` in milliseconds.
 
 ### Take a screenshot
 
