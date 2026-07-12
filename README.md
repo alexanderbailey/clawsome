@@ -14,8 +14,8 @@
 </p>
 
 <p align="center">
-  <a href="#quick-start">Quick Start</a> &middot;
   <a href="#screenshots">Screenshots</a> &middot;
+  <a href="#quick-start">Quick Start</a> &middot;
   <a href="#rest-api">API Reference</a> &middot;
   <a href="#example-setups">Example Setups</a> &middot;
   <a href="#playwright-test-integration">Test Integration</a> &middot;
@@ -32,6 +32,32 @@ Clawsome is a browser automation service you control over a REST API, from any A
 - **Playwright test monitoring.** Run your test suite normally and watch every test live on the dashboard with real-time screenshots and logs.
 
 Runs anywhere Python and Chromium can. No particular OS or hardware assumed.
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/summary.png" alt="Summary dashboard with three live context tiles" width="700">
+</p>
+
+<p align="center"><em>Summary view: every active context as a live tile, thumbnails streaming over WebSocket as each one navigates.</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/context-detail.png" alt="Single context detail view" width="700">
+</p>
+
+<p align="center"><em>Context detail: live screenshot, status, and controls for one browser context.</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/logs.png" alt="Scrolling log view for a context" width="700">
+</p>
+
+<p align="center"><em>Logs view: full timestamped history of an agent's narrated progress.</em></p>
+
+<p align="center">
+  <img src="docs/screenshots/dashboard-live.gif" alt="Live dashboard demo showing thumbnails updating in real time" width="700">
+</p>
+
+<p align="center"><em>Live in action: thumbnails refresh in real time as a context navigates, no page reload needed.</em></p>
 
 ## Quick Start
 
@@ -70,32 +96,6 @@ curl http://localhost:3000/health
 ```
 
 Open [http://localhost:3000/summary](http://localhost:3000/summary) for the live dashboard.
-
-## Screenshots
-
-<p align="center">
-  <img src="docs/screenshots/summary.png" alt="Summary dashboard with three live context tiles" width="700">
-</p>
-
-<p align="center"><em>Summary view: every active context as a live tile, thumbnails streaming over WebSocket as each one navigates.</em></p>
-
-<p align="center">
-  <img src="docs/screenshots/context-detail.png" alt="Single context detail view" width="700">
-</p>
-
-<p align="center"><em>Context detail: live screenshot, status, and controls for one browser context.</em></p>
-
-<p align="center">
-  <img src="docs/screenshots/logs.png" alt="Scrolling log view for a context" width="700">
-</p>
-
-<p align="center"><em>Logs view: full timestamped history of an agent's narrated progress.</em></p>
-
-<p align="center">
-  <img src="docs/screenshots/dashboard-live.gif" alt="Live dashboard demo showing thumbnails updating in real time" width="700">
-</p>
-
-<p align="center"><em>Live in action: thumbnails refresh in real time as a context navigates, no page reload needed.</em></p>
 
 ## Docker
 
