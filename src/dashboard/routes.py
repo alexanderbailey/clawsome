@@ -4,12 +4,14 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from ..browser.contexts import list_alive_contexts, get_alive_context, list_screenshots
-from ..db import get_logs_by_context, get_context
+from ..browser.contexts import list_alive_contexts, get_alive_context, list_screenshots, latest_screenshot
+from ..db import get_logs_by_context, get_context, list_stopped_contexts
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 router = APIRouter()
+
+HISTORY_PAGE_SIZE = 50
 
 
 @router.get("/", response_class=RedirectResponse)
@@ -22,6 +24,27 @@ async def summary(request: Request):
     contexts = list_alive_contexts()
     return templates.TemplateResponse(
         "summary.html", {"request": request, "title": "Summary", "contexts": contexts}
+    )
+
+
+@router.get("/history", response_class=HTMLResponse)
+async def history(request: Request, page: int = 1):
+    page = max(page, 1)
+    offset = (page - 1) * HISTORY_PAGE_SIZE
+    contexts = list_stopped_contexts(limit=HISTORY_PAGE_SIZE + 1, offset=offset)
+    has_next = len(contexts) > HISTORY_PAGE_SIZE
+    contexts = contexts[:HISTORY_PAGE_SIZE]
+    for ctx in contexts:
+        ctx["thumbnail"] = latest_screenshot(ctx["id"])
+    return templates.TemplateResponse(
+        "history.html",
+        {
+            "request": request,
+            "title": "History",
+            "contexts": contexts,
+            "page": page,
+            "has_next": has_next,
+        },
     )
 
 
