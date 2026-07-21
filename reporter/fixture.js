@@ -22,9 +22,13 @@
  * If Clawsome is unreachable, tests run normally with no side effects.
  */
 
+import { createHash } from 'node:crypto';
 import { test as base } from '@playwright/test';
 
 const CLAWSOME_URL = process.env.CLAWSOME_URL || 'http://localhost:3000';
+const SCREENSHOT_INTERVAL_MS = Number(process.env.CLAWSOME_SCREENSHOT_INTERVAL_MS) || 1000;
+
+const hash = (buf) => createHash('sha256').update(buf).digest('hex');
 
 export const test = base.extend({
   clawsome: [async ({ page }, use, testInfo) => {
@@ -60,21 +64,26 @@ export const test = base.extend({
     const log = (message, level = 'info') =>
       post(`/api/contexts/${id}/logs`, { level, message });
 
-    // Stream screenshots in the background
+    // Stream screenshots in the background, skipping frames identical to the last one sent
     let running = true;
+    let lastHash = null;
     const loop = (async () => {
       while (running) {
         try {
           const png = await page.screenshot({ type: 'png' });
-          await fetch(`${CLAWSOME_URL}/api/contexts/${id}/screenshot`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'image/png' },
-            body: png,
-          });
+          const digest = hash(png);
+          if (digest !== lastHash) {
+            lastHash = digest;
+            await fetch(`${CLAWSOME_URL}/api/contexts/${id}/screenshot`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'image/png' },
+              body: png,
+            });
+          }
         } catch {
           // page may be navigating or closed
         }
-        await new Promise((r) => setTimeout(r, 1500));
+        await new Promise((r) => setTimeout(r, SCREENSHOT_INTERVAL_MS));
       }
     })();
 

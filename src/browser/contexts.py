@@ -1,3 +1,5 @@
+import hashlib
+import os
 import time
 import uuid
 from datetime import datetime, timezone
@@ -18,14 +20,21 @@ _screenshots: dict[str, bytes] = {}
 
 # Throttle disk saves: id -> last save timestamp
 _last_save: dict[str, float] = {}
-_SAVE_INTERVAL = 1.0  # minimum seconds between saves per context
+_SAVE_INTERVAL = float(os.environ.get("CLAWSOME_SCREENSHOT_INTERVAL", "1.0"))  # minimum seconds between saves per context
+
+# Dedup disk saves: id -> hash of last saved frame
+_last_hash: dict[str, str] = {}
 
 
 def _save_screenshot(ctx_id: str, png: bytes, *, force: bool = False):
     now = time.time()
     if not force and ctx_id in _last_save and (now - _last_save[ctx_id]) < _SAVE_INTERVAL:
         return
+    digest = hashlib.sha256(png).hexdigest()
+    if _last_hash.get(ctx_id) == digest:
+        return
     _last_save[ctx_id] = now
+    _last_hash[ctx_id] = digest
     d = SCREENSHOTS_DIR / ctx_id
     d.mkdir(parents=True, exist_ok=True)
     ts = int(now * 1000)
@@ -234,6 +243,7 @@ async def destroy_context(ctx_id: str):
     del _alive[ctx_id]
     _screenshots.pop(ctx_id, None)
     _last_save.pop(ctx_id, None)
+    _last_hash.pop(ctx_id, None)
 
     update_context_status(ctx_id, "stopped")
 

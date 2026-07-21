@@ -244,7 +244,7 @@ test('loads the homepage', async ({ page }) => {
 });
 ```
 
-Every test automatically appears on the dashboard with live screenshots updating every 1.5s. When the test finishes, the context is destroyed and screenshots are preserved in the history.
+Every test automatically appears on the dashboard with live screenshots, captured every second by default (identical frames are skipped). Set `CLAWSOME_SCREENSHOT_INTERVAL_MS` to change the capture interval. When the test finishes, the context is destroyed and screenshots are preserved in the history.
 
 ### Custom log messages
 
