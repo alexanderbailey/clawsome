@@ -273,6 +273,7 @@ If Clawsome is unreachable, tests run normally with no errors or side effects.
 | Route | Description |
 | --- | --- |
 | `/summary` | Grid of active contexts with live thumbnails (auto-updates via SSE + WebSocket) |
+| `/history` | Grid of stopped contexts with last screenshot, paginated |
 | `/context/:id` | Live screenshot view with metadata, mini log stream, and screenshot history |
 | `/logs/:id` | Full scrolling log viewer |
 | `/sse/updates` | Raw SSE event stream |

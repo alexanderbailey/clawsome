@@ -38,6 +38,18 @@ def list_contexts() -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def list_stopped_contexts(limit: int = 50, offset: int = 0) -> list[dict]:
+    rows = (
+        get_db()
+        .execute(
+            "SELECT * FROM contexts WHERE status != 'running' ORDER BY updated_at DESC LIMIT ? OFFSET ?",
+            (limit, offset),
+        )
+        .fetchall()
+    )
+    return [dict(r) for r in rows]
+
+
 def get_context(id: str) -> dict | None:
     row = get_db().execute("SELECT * FROM contexts WHERE id = ?", (id,)).fetchone()
     return dict(row) if row else None

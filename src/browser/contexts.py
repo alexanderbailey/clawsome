@@ -57,6 +57,18 @@ def list_screenshots(ctx_id: str) -> list[dict]:
     return result
 
 
+def latest_screenshot(ctx_id: str) -> dict | None:
+    d = SCREENSHOTS_DIR / ctx_id
+    if not d.exists():
+        return None
+    files = sorted(d.glob("*.png"), reverse=True)
+    if not files:
+        return None
+    f = files[0]
+    ts = datetime.fromtimestamp(int(f.stem) / 1000, tz=timezone.utc)
+    return {"filename": f.name, "timestamp": ts.strftime("%Y-%m-%d %H:%M:%S")}
+
+
 def get_saved_screenshot(ctx_id: str, filename: str) -> bytes:
     path = SCREENSHOTS_DIR / ctx_id / filename
     if not path.exists() or not path.name.endswith(".png"):

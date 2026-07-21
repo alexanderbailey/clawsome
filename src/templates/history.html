@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+{% block content %}
+
+{% if contexts|length == 0 %}
+  <div class="empty-state">
+    <p>No stopped contexts yet.</p>
+  </div>
+{% else %}
+  <div class="grid">
+    {% for ctx in contexts %}
+      <div class="card">
+        {% if ctx.thumbnail %}
+          <a href="/context/{{ ctx.id }}">
+            <img class="card-thumb"
+                 src="/api/contexts/{{ ctx.id }}/screenshots/{{ ctx.thumbnail.filename }}"
+                 alt="{{ ctx.name }}">
+          </a>
+        {% endif %}
+        <div class="card-body">
+          <div class="card-title">{{ ctx.name }}</div>
+          <div class="card-meta">
+            <span class="badge badge-stopped">stopped</span>
+            {% if ctx.profile %}
+              <span>{{ ctx.profile }}</span>
+            {% endif %}
+          </div>
+          <div class="card-meta" style="margin-top: 0.35rem;">
+            <span>Created {{ ctx.created_at }}</span>
+          </div>
+          <div class="card-meta">
+            <span>Stopped {{ ctx.updated_at }}</span>
+          </div>
+        </div>
+        <div class="card-actions">
+          <a class="btn" href="/context/{{ ctx.id }}">View</a>
+          <a class="btn" href="/logs/{{ ctx.id }}">Logs</a>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if page > 1 or has_next %}
+    <div style="display: flex; justify-content: space-between; margin-top: 1.5rem;">
+      {% if page > 1 %}
+        <a class="btn" href="/history?page={{ page - 1 }}">&larr; Newer</a>
+      {% else %}
+        <span></span>
+      {% endif %}
+      {% if has_next %}
+        <a class="btn" href="/history?page={{ page + 1 }}">Older &rarr;</a>
+      {% endif %}
+    </div>
+  {% endif %}
+{% endif %}
+
+{% endblock %}
