@@ -79,6 +79,78 @@ STEALTH_SCRIPT = """
 Object.defineProperty(navigator, 'webdriver', { get: () => false });
 """
 
+SNAPSHOT_SCRIPT = """
+() => {
+  function cssEscape(str) {
+    return window.CSS && CSS.escape ? CSS.escape(str) : str.replace(/[^a-zA-Z0-9_-]/g, '\\\\$&');
+  }
+
+  function selectorFor(el) {
+    if (el.id) return '#' + cssEscape(el.id);
+    const testId = el.getAttribute('data-testid');
+    if (testId) return `[data-testid="${testId}"]`;
+    const parts = [];
+    let node = el;
+    while (node && node.nodeType === 1 && node !== document.body) {
+      let part = node.tagName.toLowerCase();
+      const parent = node.parentElement;
+      if (parent) {
+        const siblings = Array.from(parent.children).filter((c) => c.tagName === node.tagName);
+        if (siblings.length > 1) part += `:nth-of-type(${siblings.indexOf(node) + 1})`;
+      }
+      parts.unshift(part);
+      node = parent;
+    }
+    return parts.join(' > ');
+  }
+
+  function labelFor(el) {
+    const aria = el.getAttribute('aria-label');
+    if (aria) return aria.trim();
+    if (el.labels && el.labels.length) return Array.from(el.labels).map((l) => l.innerText.trim()).join(' ');
+    if (el.tagName === 'SELECT') {
+      const selected = el.options[el.selectedIndex];
+      return selected ? selected.text.trim() : '';
+    }
+    const text = el.innerText && el.innerText.trim();
+    if (text) return text.slice(0, 120);
+    if (el.placeholder) return el.placeholder;
+    if (el.value) return String(el.value).slice(0, 120);
+    const title = el.getAttribute('title');
+    if (title) return title;
+    return '';
+  }
+
+  function visible(el) {
+    const rect = el.getBoundingClientRect();
+    const style = getComputedStyle(el);
+    return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+  }
+
+  const selector = 'a[href], button, input, select, textarea, [role="button"], [role="link"], ' +
+    '[role="checkbox"], [role="radio"], [role="tab"], [contenteditable="true"]';
+
+  const elements = Array.from(document.querySelectorAll(selector))
+    .filter(visible)
+    .slice(0, 200)
+    .map((el) => ({
+      tag: el.tagName.toLowerCase(),
+      type: el.getAttribute('type') || undefined,
+      role: el.getAttribute('role') || undefined,
+      label: labelFor(el),
+      selector: selectorFor(el),
+      href: el.tagName === 'A' ? el.href : undefined,
+    }));
+
+  return {
+    url: location.href,
+    title: document.title,
+    text: document.body.innerText.slice(0, 4000),
+    elements,
+  };
+}
+"""
+
 
 async def create_context(*, name: str, profile: str | None = None, external: bool = False) -> dict:
     ctx_id = str(uuid.uuid4())
@@ -144,6 +216,13 @@ async def navigate_to(
         raise ValueError(f"Context {ctx_id} not found")
     await entry["page"].goto(url, wait_until=wait_until, timeout=timeout)
     return {"url": entry["page"].url}
+
+
+async def get_snapshot(ctx_id: str) -> dict:
+    entry = _alive.get(ctx_id)
+    if not entry:
+        raise ValueError(f"Context {ctx_id} not found")
+    return await entry["page"].evaluate(SNAPSHOT_SCRIPT)
 
 
 def upload_screenshot(ctx_id: str, png: bytes):

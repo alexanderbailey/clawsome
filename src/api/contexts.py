@@ -12,6 +12,7 @@ from ..browser.contexts import (
     list_screenshots,
     get_saved_screenshot,
     exec_action,
+    get_snapshot,
     destroy_context,
 )
 from ..db import insert_log, get_logs_by_context
@@ -89,6 +90,14 @@ async def goto_route(ctx_id: str, body: GotoBody):
         insert_log(context_id=ctx_id, level="info", message=f"Navigated to {body.url}")
         broadcast(event="context:updated", data={"id": ctx_id, "url": body.url})
         return result
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/contexts/{ctx_id}/snapshot")
+async def snapshot_route(ctx_id: str):
+    try:
+        return await get_snapshot(ctx_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
