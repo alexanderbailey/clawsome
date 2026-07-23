@@ -191,6 +191,18 @@ All actions accept an optional `timeout` in milliseconds.
 
 </details>
 
+When a `goto` or `exec` fails in the browser — a timeout, a missing selector, a navigation error — the response is a `400` with a structured body rather than a bare `500`:
+
+```json
+{
+  "error": "timeout",
+  "message": "Page.click: Timeout 800ms exceeded.\nCall log:\n  - waiting for locator(\"#add-to-cart\")",
+  "url": "https://example.com/product"
+}
+```
+
+`error` is one of `timeout`, `navigation`, or `error`; `url` is the page's current URL when the failure happened. (An unknown context is still a `404`, and an unknown action a `400` with a `detail` message.)
+
 ### Screenshots & Logs
 
 | Method | Endpoint | Body | Description |
