@@ -19,6 +19,7 @@
  *   });
  *
  * Set CLAWSOME_URL to point at your Clawsome instance (default: http://localhost:3000).
+ * Set CLAWSOME_TOKEN if the instance requires bearer-token authentication.
  * If Clawsome is unreachable, tests run normally with no side effects.
  */
 
@@ -26,9 +27,14 @@ import { createHash } from 'node:crypto';
 import { test as base } from '@playwright/test';
 
 const CLAWSOME_URL = process.env.CLAWSOME_URL || 'http://localhost:3000';
+const CLAWSOME_TOKEN = process.env.CLAWSOME_TOKEN || '';
 const SCREENSHOT_INTERVAL_MS = Number(process.env.CLAWSOME_SCREENSHOT_INTERVAL_MS) || 1000;
 
 const hash = (buf) => createHash('sha256').update(buf).digest('hex');
+
+// Merge in the bearer token header when a token is configured.
+const headers = (extra = {}) =>
+  CLAWSOME_TOKEN ? { ...extra, Authorization: `Bearer ${CLAWSOME_TOKEN}` } : extra;
 
 export const test = base.extend({
   clawsome: [async ({ page }, use, testInfo) => {
@@ -38,7 +44,7 @@ export const test = base.extend({
     try {
       const res = await fetch(`${CLAWSOME_URL}/api/contexts`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ name: testInfo.title, external: true }),
       });
       if (res.ok) {
@@ -57,7 +63,7 @@ export const test = base.extend({
     const post = (path, body) =>
       fetch(`${CLAWSOME_URL}${path}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(body),
       }).catch(() => {});
 
@@ -76,7 +82,7 @@ export const test = base.extend({
             lastHash = digest;
             await fetch(`${CLAWSOME_URL}/api/contexts/${id}/screenshot`, {
               method: 'POST',
-              headers: { 'Content-Type': 'image/png' },
+              headers: headers({ 'Content-Type': 'image/png' }),
               body: png,
             });
           }
@@ -100,7 +106,7 @@ export const test = base.extend({
       const png = await page.screenshot({ type: 'png' });
       await fetch(`${CLAWSOME_URL}/api/contexts/${id}/screenshot`, {
         method: 'POST',
-        headers: { 'Content-Type': 'image/png' },
+        headers: headers({ 'Content-Type': 'image/png' }),
         body: png,
       });
     } catch {}
@@ -114,6 +120,7 @@ export const test = base.extend({
     // Destroy context
     await fetch(`${CLAWSOME_URL}/api/contexts/${id}`, {
       method: 'DELETE',
+      headers: headers(),
     }).catch(() => {});
   }, { auto: true }],
 });

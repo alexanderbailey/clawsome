@@ -76,7 +76,7 @@ uv run playwright install chromium
 cp .env.example .env
 ```
 
-Defaults are fine for local use (`PORT=3000`, `HOST=0.0.0.0`).
+Defaults are fine for local use (`PORT=3000`, `HOST=0.0.0.0`). Set `CLAWSOME_TOKEN` to require bearer-token authentication on the API — see [Security](#security).
 
 ### 3. Run the server
 
@@ -155,7 +155,7 @@ Use it when creating a context:
 
 ## REST API
 
-All endpoints are under `/api/`.
+All endpoints are under `/api/`. If `CLAWSOME_TOKEN` is set, every request needs an `Authorization: Bearer <token>` header — see [Security](#security).
 
 ### Contexts
 
@@ -231,6 +231,25 @@ curl -s http://localhost:3000/api/contexts/abc123/screenshot -o shot.png
 # Clean up
 curl -s -X DELETE http://localhost:3000/api/contexts/abc123
 ```
+
+## Security
+
+The `/api/*` endpoints drive a real browser: `exec` runs arbitrary JavaScript in the page, and contexts can be created against any saved login profile. Treat API access as equivalent to control of the browser and everything those profiles are logged into.
+
+**Without a token (default).** The API is unauthenticated. This is fine when the server is bound to `localhost` and only trusted local processes reach it. The default `HOST=0.0.0.0` binds to all interfaces, so anyone who can reach the port can create contexts and run `exec` — do not expose the port beyond localhost without a token (or a network-level restriction in front of it).
+
+**With a token.** Set `CLAWSOME_TOKEN` to a strong random secret. Every `/api/*` request must then send `Authorization: Bearer <token>`; requests without a valid token get `401`. Point clients at it with the matching `CLAWSOME_TOKEN` environment variable (both the skill and `reporter/fixture.js` read it and attach the header automatically).
+
+```bash
+CLAWSOME_TOKEN=$(openssl rand -hex 32) uv run uvicorn src.app:app --host 0.0.0.0 --port 3000
+
+curl -s http://localhost:3000/api/contexts \
+  -H "Authorization: Bearer $CLAWSOME_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name": "example task"}'
+```
+
+The token guards the API only. The dashboard pages, the SSE stream (`/sse/updates`), the screenshot WebSocket (`/ws/screenshots/:id`), and `/health` remain open, so keep the dashboard on a trusted network. Splitting read-only dashboard access from API control is tracked separately.
 
 ## Playwright Test Integration
 
