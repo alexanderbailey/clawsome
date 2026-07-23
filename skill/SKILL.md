@@ -15,9 +15,10 @@ Interact with the API over HTTP. The examples below use `curl` via bash, but any
 
 1. **Create a context** for each task (one browser tab per task)
 2. **Navigate** to the target URL
-3. **Execute actions** (click, type, etc.) to accomplish the task
-4. **Log progress** so the user can follow along on the dashboard
-5. **Destroy the context** when the task is done
+3. **Take a snapshot** to see what's on the page and find selectors before acting
+4. **Execute actions** (click, type, etc.) to accomplish the task
+5. **Log progress** so the user can follow along on the dashboard
+6. **Destroy the context** when the task is done
 
 ## API Reference
 
@@ -41,6 +42,14 @@ curl -s -X POST http://localhost:3000/api/contexts/CONTEXT_ID/goto \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example.com"}'
 ```
+
+### Read the page before acting
+
+```bash
+curl -s http://localhost:3000/api/contexts/CONTEXT_ID/snapshot
+```
+
+Returns the current `url` and `title`, the visible text content, and a list of interactive elements (links, buttons, inputs, selects) each with a `label` and a usable `selector`. Take a snapshot after every navigation instead of guessing selectors blind — it's cheaper than a failed action and a retry.
 
 ### Execute actions on the page
 
@@ -100,6 +109,7 @@ Always destroy contexts when tasks are complete to free resources.
 ## Guidelines
 
 - Always create a context before performing any browser actions.
+- Take a snapshot after navigating to an unfamiliar page instead of guessing selectors.
 - Use profiles for sites that require login (amazon, github, banking, etc.).
 - Log each significant step so the dashboard stays informative.
 - Handle errors gracefully. If a selector isn't found, try alternatives or report the issue.

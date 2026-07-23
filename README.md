@@ -172,6 +172,7 @@ All endpoints are under `/api/`.
 | --- | --- | --- | --- |
 | `POST` | `/api/contexts/:id/goto` | `{ url, timeout?, waitUntil? }` | Navigate to a URL |
 | `POST` | `/api/contexts/:id/exec` | `{ action, selector?, value?, script?, timeout? }` | Execute a page action |
+| `GET` | `/api/contexts/:id/snapshot` | - | Get a JSON digest of the current page: URL, title, visible text, and interactive elements with selectors |
 
 <details>
 <summary>Supported exec actions</summary>
@@ -214,6 +215,10 @@ curl -s -X POST http://localhost:3000/api/contexts \
 curl -s -X POST http://localhost:3000/api/contexts/abc123/goto \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example.com"}'
+
+# See what's on the page before acting
+curl -s http://localhost:3000/api/contexts/abc123/snapshot
+# → {"url": "...", "title": "...", "text": "...", "elements": [{"tag": "a", "label": "More info", "selector": "a.more-info", "href": "..."}, ...]}
 
 # Click a link
 curl -s -X POST http://localhost:3000/api/contexts/abc123/exec \
