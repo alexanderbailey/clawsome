@@ -36,17 +36,21 @@
   <script>
     (function() {
       const img = document.getElementById('live-screenshot');
+      const view = document.querySelector('.live-view');
       const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(proto + '//' + location.host + '/ws/screenshots/{{ context.id }}');
-      ws.binaryType = 'blob';
-      ws.onmessage = (e) => {
-        const url = URL.createObjectURL(e.data);
-        img.onload = () => URL.revokeObjectURL(url);
-        img.src = url;
-      };
+      liveScreenshot(
+        proto + '//' + location.host + '/ws/screenshots/{{ context.id }}',
+        (blob) => {
+          const url = URL.createObjectURL(blob);
+          img.onload = () => URL.revokeObjectURL(url);
+          img.src = url;
+        },
+        (state) => view.setAttribute('data-conn', state),
+      );
     })();
   </script>
 
+  <div id="mini-log-status" class="conn-banner"></div>
   <div class="log-container" id="mini-logs">
     <div class="log-entry log-info" style="color: var(--text-muted);">Waiting for log entries...</div>
   </div>
@@ -54,17 +58,16 @@
   <script>
     (function() {
       const container = document.getElementById('mini-logs');
+      const status = document.getElementById('mini-log-status');
       const id = '{{ context.id }}';
-      const source = new EventSource('/sse/updates');
-      source.addEventListener('log:new', (e) => {
-        const data = JSON.parse(e.data);
+      liveUpdates('/sse/updates', ['log:new'], (type, data) => {
         if (data.contextId !== id) return;
         const div = document.createElement('div');
         div.className = 'log-entry log-' + (data.level || 'info');
         div.textContent = '[' + (data.level || 'info').toUpperCase() + '] ' + data.message;
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
-      });
+      }, (state) => status.setAttribute('data-conn', state));
     })();
   </script>
 {% else %}
