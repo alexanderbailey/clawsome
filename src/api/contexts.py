@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
 from pydantic import BaseModel
 
+from .auth import require_token
 from ..browser.contexts import (
     create_context,
     get_alive_context,
@@ -18,7 +19,7 @@ from ..browser.contexts import (
 from ..db import insert_log, get_logs_by_context
 from ..dashboard.sse import broadcast
 
-router = APIRouter(prefix="/api")
+router = APIRouter(prefix="/api", dependencies=[Depends(require_token)])
 
 
 class CreateContextBody(BaseModel):

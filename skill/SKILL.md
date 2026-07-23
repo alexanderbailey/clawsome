@@ -11,6 +11,10 @@ You control a Playwright browser automation service. The service runs at `http:/
 
 Interact with the API over HTTP. The examples below use `curl` via bash, but any HTTP client works. Always parse JSON responses to extract IDs and results.
 
+### Authentication
+
+If the instance is configured with a token (the `CLAWSOME_TOKEN` environment variable is set on the server), every `/api/*` request must include an `Authorization: Bearer $CLAWSOME_TOKEN` header. Add `-H "Authorization: Bearer $CLAWSOME_TOKEN"` to each `curl` below when `$CLAWSOME_TOKEN` is set; requests without it get `401`. When no token is configured, omit the header.
+
 ## Workflow
 
 1. **Create a context** for each task (one browser tab per task)
