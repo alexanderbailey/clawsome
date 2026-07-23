@@ -70,8 +70,18 @@ def latest_screenshot(ctx_id: str) -> dict | None:
 
 
 def get_saved_screenshot(ctx_id: str, filename: str) -> bytes:
-    path = SCREENSHOTS_DIR / ctx_id / filename
-    if not path.exists() or not path.name.endswith(".png"):
+    # Resolve the joined path and confirm it stays within the context's own
+    # directory. URL-encoded separators in ctx_id/filename survive route
+    # matching, so a crafted value could otherwise traverse out of it.
+    root = SCREENSHOTS_DIR.resolve()
+    base = (root / ctx_id).resolve()
+    path = (base / filename).resolve()
+    if (
+        base.parent != root
+        or path.parent != base
+        or not path.name.endswith(".png")
+        or not path.is_file()
+    ):
         raise ValueError(f"Screenshot not found: {filename}")
     return path.read_bytes()
 
