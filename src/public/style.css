@@ -240,3 +240,63 @@ header h1::before {
   color: var(--text-muted);
   text-align: center;
 }
+
+/* --- Live-view connection state --- */
+
+.conn-banner { display: none; }
+
+.conn-banner[data-conn="offline"] {
+  display: block;
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 0.4rem;
+  background: rgba(242, 184, 75, 0.12);
+  border: 1px solid rgba(242, 184, 75, 0.35);
+  color: var(--yellow);
+  font-family: var(--mono);
+  font-size: 0.8rem;
+}
+
+.conn-banner[data-conn="offline"]::before {
+  content: "Live updates disconnected. Reconnecting\2026";
+}
+
+.live-view[data-conn="offline"]::after,
+.live-view[data-conn="gone"]::after {
+  content: "Reconnecting\2026";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 14, 26, 0.72);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  letter-spacing: 0.03em;
+}
+
+.live-view[data-conn="gone"]::after { content: "Disconnected"; }
+
+.card { position: relative; }
+
+.card[data-conn="offline"] .card-thumb,
+.card[data-conn="gone"] .card-thumb { opacity: 0.35; }
+
+.card[data-conn="offline"]::after,
+.card[data-conn="gone"]::after {
+  content: "Reconnecting\2026";
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(10, 14, 26, 0.85);
+  color: var(--yellow);
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.card[data-conn="gone"]::after { content: "Disconnected"; color: var(--text-muted); }
