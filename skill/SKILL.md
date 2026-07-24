@@ -7,9 +7,19 @@ metadata: {"openclaw":{"requires":{"bins":["curl"]}}}
 
 # Clawsome Browser Automation
 
-You control a Playwright browser automation service. The service runs at `http://localhost:3000` (adjust if different).
+You control a Playwright browser automation service.
 
 Interact with the API over HTTP. The examples below use `curl` via bash, but any HTTP client works. Always parse JSON responses to extract IDs and results.
+
+### Server address
+
+The service address comes from the `CLAWSOME_URL` environment variable, falling back to `http://localhost:3000` when it isn't set. Resolve it once at the start of a task and use it for every request:
+
+```bash
+CLAWSOME_URL="${CLAWSOME_URL:-http://localhost:3000}"
+```
+
+The examples below use `$CLAWSOME_URL` throughout. Do not hardcode the address.
 
 ### Authentication
 
@@ -29,7 +39,7 @@ If the instance is configured with a token (the `CLAWSOME_TOKEN` environment var
 ### Create a browser context
 
 ```bash
-curl -s -X POST http://localhost:3000/api/contexts \
+curl -s -X POST $CLAWSOME_URL/api/contexts \
   -H "Content-Type: application/json" \
   -d '{"name": "TASK_DESCRIPTION", "profile": "PROFILE_NAME_OR_NULL"}'
 ```
@@ -43,7 +53,7 @@ Returns: `{"id": "...", "name": "...", ...}`
 ### Navigate to a URL
 
 ```bash
-curl -s -X POST http://localhost:3000/api/contexts/CONTEXT_ID/goto \
+curl -s -X POST $CLAWSOME_URL/api/contexts/CONTEXT_ID/goto \
   -H "Content-Type: application/json" \
   -d '{"url": "https://example.com"}'
 ```
@@ -51,7 +61,7 @@ curl -s -X POST http://localhost:3000/api/contexts/CONTEXT_ID/goto \
 ### Read the page before acting
 
 ```bash
-curl -s http://localhost:3000/api/contexts/CONTEXT_ID/snapshot
+curl -s $CLAWSOME_URL/api/contexts/CONTEXT_ID/snapshot
 ```
 
 Returns the current `url` and `title`, the visible text content, and a list of interactive elements (links, buttons, inputs, selects) each with a `label` and a usable `selector`. Take a snapshot after every navigation instead of guessing selectors blind — it's cheaper than a failed action and a retry.
@@ -59,7 +69,7 @@ Returns the current `url` and `title`, the visible text content, and a list of i
 ### Execute actions on the page
 
 ```bash
-curl -s -X POST http://localhost:3000/api/contexts/CONTEXT_ID/exec \
+curl -s -X POST $CLAWSOME_URL/api/contexts/CONTEXT_ID/exec \
   -H "Content-Type: application/json" \
   -d '{"action": "ACTION", "selector": "CSS_SELECTOR", "value": "TEXT"}'
 ```
@@ -80,13 +90,13 @@ Every `goto` and `exec` response also includes the page's current `url` and `tit
 ### Take a screenshot
 
 ```bash
-curl -s http://localhost:3000/api/contexts/CONTEXT_ID/screenshot --output screenshot.png
+curl -s $CLAWSOME_URL/api/contexts/CONTEXT_ID/screenshot --output screenshot.png
 ```
 
 ### Log progress
 
 ```bash
-curl -s -X POST http://localhost:3000/api/contexts/CONTEXT_ID/logs \
+curl -s -X POST $CLAWSOME_URL/api/contexts/CONTEXT_ID/logs \
   -H "Content-Type: application/json" \
   -d '{"level": "info", "message": "Completed step 1: logged in"}'
 ```
@@ -96,19 +106,19 @@ Log important steps so the user can follow progress on the dashboard. Levels: `i
 ### List active contexts
 
 ```bash
-curl -s http://localhost:3000/api/contexts
+curl -s $CLAWSOME_URL/api/contexts
 ```
 
 ### Get logs for a context
 
 ```bash
-curl -s http://localhost:3000/api/contexts/CONTEXT_ID/logs
+curl -s $CLAWSOME_URL/api/contexts/CONTEXT_ID/logs
 ```
 
 ### Destroy a context
 
 ```bash
-curl -s -X DELETE http://localhost:3000/api/contexts/CONTEXT_ID
+curl -s -X DELETE $CLAWSOME_URL/api/contexts/CONTEXT_ID
 ```
 
 Always destroy contexts when tasks are complete to free resources.
@@ -121,4 +131,4 @@ Always destroy contexts when tasks are complete to free resources.
 - Log each significant step so the dashboard stays informative.
 - Handle errors gracefully. If a selector isn't found, try alternatives or report the issue.
 - Destroy contexts when done, even if the task fails.
-- The dashboard is viewable at `http://localhost:3000/summary`.
+- The dashboard is viewable at `$CLAWSOME_URL/summary`.

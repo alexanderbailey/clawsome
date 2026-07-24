@@ -355,7 +355,14 @@ cp -r skill/ .claude/skills/clawsome/
 cp -r skill/ ~/.claude/skills/clawsome/
 ```
 
-If Clawsome runs on a different host, edit `skill/SKILL.md` and replace `localhost:3000` with the actual address.
+If Clawsome runs somewhere other than `http://localhost:3000`, set `CLAWSOME_URL` in the agent's environment — the skill reads it and falls back to the default when it's unset, so there's no need to edit `skill/SKILL.md`. Set `CLAWSOME_TOKEN` too if the instance requires a token:
+
+```bash
+export CLAWSOME_URL=http://192.168.1.50:3000
+export CLAWSOME_TOKEN=your-token   # only if the server sets one
+```
+
+This is the same pair of variables `reporter/fixture.js` uses.
 
 Once installed, the reliable way to invoke it is by name: say "use clawsome to check the checkout page", or type `/clawsome` in Claude Code. Agents can also pick the skill up on their own when a request clearly needs a live browser, but that matching is best effort, so name it when it matters.
 
