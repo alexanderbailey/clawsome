@@ -18,12 +18,20 @@ from ..browser.contexts import (
     exec_action,
     get_snapshot,
     destroy_context,
+    touch_context,
     ProfileInUseError,
 )
 from ..db import insert_log, get_logs_by_context
 from ..dashboard.sse import broadcast
 
-router = APIRouter(prefix="/api", dependencies=[Depends(require_token)])
+async def touch_ctx(request: Request):
+    """Reset the idle timer for whichever context this request addresses."""
+    ctx_id = request.path_params.get("ctx_id")
+    if ctx_id:
+        touch_context(ctx_id)
+
+
+router = APIRouter(prefix="/api", dependencies=[Depends(require_token), Depends(touch_ctx)])
 
 
 class Viewport(BaseModel):

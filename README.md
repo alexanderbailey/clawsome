@@ -176,6 +176,8 @@ All endpoints are under `/api/`. If `CLAWSOME_TOKEN` is set, every request needs
 
 `viewport` is optional and defaults to `{ "width": 1280, "height": 720 }`. Pass e.g. `{ "width": 390, "height": 844 }` to check how a page renders on a phone-sized screen. The chosen viewport is reflected back in the context metadata.
 
+Context metadata also carries `created_at` and `last_activity`. A context with no API activity for `CLAWSOME_CONTEXT_TTL` seconds (default `1800`, `0` disables) is destroyed automatically, so a client that crashes or forgets to clean up doesn't leak a Chromium page. The expiry is written to the context's log stream, so the dashboard shows why it stopped. Any API request touching a context resets its timer.
+
 ### Browser Actions
 
 | Method | Endpoint | Body | Description |
