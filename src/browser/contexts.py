@@ -162,7 +162,16 @@ SNAPSHOT_SCRIPT = """
 """
 
 
-async def create_context(*, name: str, profile: str | None = None, external: bool = False) -> dict:
+DEFAULT_VIEWPORT = {"width": 1280, "height": 720}
+
+
+async def create_context(
+    *,
+    name: str,
+    profile: str | None = None,
+    external: bool = False,
+    viewport: dict | None = None,
+) -> dict:
     ctx_id = str(uuid.uuid4())
 
     if external:
@@ -172,11 +181,13 @@ async def create_context(*, name: str, profile: str | None = None, external: boo
             "profile": None,
             "persistent": False,
             "external": True,
+            "viewport": None,
         }
         _alive[ctx_id] = {"context": None, "page": None, "meta": meta}
         insert_context(id=ctx_id, name=name, profile=None)
         return meta
 
+    vp = viewport or DEFAULT_VIEWPORT
     profile_path = PROFILES_DIR / profile if profile else None
     has_persistent = profile_path is not None and profile_path.exists()
 
@@ -186,12 +197,12 @@ async def create_context(*, name: str, profile: str | None = None, external: boo
             str(profile_path),
             headless=True,
             args=LAUNCH_ARGS,
-            viewport={"width": 1280, "height": 720},
+            viewport=vp,
         )
         page = context.pages[0] if context.pages else await context.new_page()
     else:
         browser = get_browser()
-        context = await browser.new_context(viewport={"width": 1280, "height": 720})
+        context = await browser.new_context(viewport=vp)
         page = await context.new_page()
 
     await page.add_init_script(STEALTH_SCRIPT)
@@ -202,6 +213,7 @@ async def create_context(*, name: str, profile: str | None = None, external: boo
         "profile": profile or None,
         "persistent": has_persistent,
         "external": False,
+        "viewport": vp,
     }
     _alive[ctx_id] = {"context": context, "page": page, "meta": meta}
 
