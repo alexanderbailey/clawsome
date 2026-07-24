@@ -191,6 +191,12 @@ All actions accept an optional `timeout` in milliseconds.
 
 </details>
 
+Every successful `goto` and `exec` response includes the page's current `url` and `title`, so you don't need a follow-up request to see where an action left the page:
+
+```json
+{ "action": "click", "selector": "a.more-info", "url": "https://example.com/details", "title": "Details" }
+```
+
 When a `goto` or `exec` fails in the browser — a timeout, a missing selector, a navigation error — the response is a `400` with a structured body rather than a bare `500`:
 
 ```json

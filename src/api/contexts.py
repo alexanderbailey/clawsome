@@ -10,6 +10,7 @@ from ..browser.contexts import (
     get_alive_context,
     list_alive_contexts,
     navigate_to,
+    page_state,
     take_screenshot,
     upload_screenshot,
     list_screenshots,
@@ -99,7 +100,7 @@ async def goto_route(ctx_id: str, body: GotoBody):
         return playwright_error_response(e, url=url)
     insert_log(context_id=ctx_id, level="info", message=f"Navigated to {body.url}")
     broadcast(event="context:updated", data={"id": ctx_id, "url": body.url})
-    return result
+    return {**result, **await page_state(ctx_id)}
 
 
 @router.get("/contexts/{ctx_id}/snapshot")
@@ -168,7 +169,7 @@ async def exec_route(ctx_id: str, body: ExecBody):
         level="info",
         message=f"Executed: {body.action} {body.selector or ''}".strip(),
     )
-    return result
+    return {**result, **await page_state(ctx_id)}
 
 
 @router.get("/contexts/{ctx_id}/logs")

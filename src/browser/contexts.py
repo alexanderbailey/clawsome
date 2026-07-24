@@ -218,6 +218,15 @@ def list_alive_contexts() -> list[dict]:
     return [entry["meta"] for entry in _alive.values()]
 
 
+async def page_state(ctx_id: str) -> dict:
+    """Current url + title for the context's page, or {} for external contexts."""
+    entry = _alive.get(ctx_id)
+    if not entry or not entry.get("page"):
+        return {}
+    page = entry["page"]
+    return {"url": page.url, "title": await page.title()}
+
+
 async def navigate_to(
     ctx_id: str, url: str, *, timeout: int = 30000, wait_until: str = "domcontentloaded"
 ) -> dict:
