@@ -165,6 +165,25 @@ SNAPSHOT_SCRIPT = """
 DEFAULT_VIEWPORT = {"width": 1280, "height": 720}
 
 
+class ProfileInUseError(Exception):
+    """Raised when a profile is already held by another live context."""
+
+    def __init__(self, profile: str, holder: dict):
+        self.profile = profile
+        self.holder = holder
+        super().__init__(
+            f"Profile '{profile}' is in use by context {holder['id']} ('{holder['name']}')"
+        )
+
+
+def _profile_holder(profile: str) -> dict | None:
+    for entry in _alive.values():
+        meta = entry["meta"]
+        if meta.get("profile") == profile and meta.get("persistent"):
+            return meta
+    return None
+
+
 async def create_context(
     *,
     name: str,
@@ -192,6 +211,9 @@ async def create_context(
     has_persistent = profile_path is not None and profile_path.exists()
 
     if has_persistent:
+        holder = _profile_holder(profile)
+        if holder:
+            raise ProfileInUseError(profile, holder)
         pw = get_playwright()
         context = await pw.chromium.launch_persistent_context(
             str(profile_path),
