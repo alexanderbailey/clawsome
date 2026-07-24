@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
+from playwright.async_api import Error as PlaywrightError
 from pydantic import BaseModel
 
 from .auth import require_token
+from .errors import playwright_error_response
 from ..browser.contexts import (
     create_context,
     get_alive_context,
@@ -81,18 +83,23 @@ async def destroy_context_route(ctx_id: str):
 
 @router.post("/contexts/{ctx_id}/goto")
 async def goto_route(ctx_id: str, body: GotoBody):
+    kwargs = {}
+    if body.timeout is not None:
+        kwargs["timeout"] = body.timeout
+    if body.waitUntil is not None:
+        kwargs["wait_until"] = body.waitUntil
     try:
-        kwargs = {}
-        if body.timeout is not None:
-            kwargs["timeout"] = body.timeout
-        if body.waitUntil is not None:
-            kwargs["wait_until"] = body.waitUntil
         result = await navigate_to(ctx_id, body.url, **kwargs)
-        insert_log(context_id=ctx_id, level="info", message=f"Navigated to {body.url}")
-        broadcast(event="context:updated", data={"id": ctx_id, "url": body.url})
-        return result
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except PlaywrightError as e:
+        entry = get_alive_context(ctx_id)
+        url = entry["page"].url if entry and entry.get("page") else body.url
+        insert_log(context_id=ctx_id, level="error", message=str(e).splitlines()[0])
+        return playwright_error_response(e, url=url)
+    insert_log(context_id=ctx_id, level="info", message=f"Navigated to {body.url}")
+    broadcast(event="context:updated", data={"id": ctx_id, "url": body.url})
+    return result
 
 
 @router.get("/contexts/{ctx_id}/snapshot")
@@ -149,14 +156,19 @@ async def exec_route(ctx_id: str, body: ExecBody):
             script=body.script,
             timeout=body.timeout,
         )
-        insert_log(
-            context_id=ctx_id,
-            level="info",
-            message=f"Executed: {body.action} {body.selector or ''}".strip(),
-        )
-        return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except PlaywrightError as e:
+        entry = get_alive_context(ctx_id)
+        url = entry["page"].url if entry and entry.get("page") else None
+        insert_log(context_id=ctx_id, level="error", message=str(e).splitlines()[0])
+        return playwright_error_response(e, url=url)
+    insert_log(
+        context_id=ctx_id,
+        level="info",
+        message=f"Executed: {body.action} {body.selector or ''}".strip(),
+    )
+    return result
 
 
 @router.get("/contexts/{ctx_id}/logs")
