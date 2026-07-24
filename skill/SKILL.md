@@ -36,6 +36,7 @@ curl -s -X POST http://localhost:3000/api/contexts \
 
 - `name`: a short description of the task
 - `profile`: use a saved login profile (e.g. "amazon", "github") or omit for no profile
+- `viewport`: optional `{"width": ..., "height": ...}`, defaults to `1280x720`. Use a small size (e.g. `{"width": 390, "height": 844}`) to check a mobile layout.
 
 Returns: `{"id": "...", "name": "...", ...}`
 

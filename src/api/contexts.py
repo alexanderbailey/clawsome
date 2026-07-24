@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
 from playwright.async_api import Error as PlaywrightError
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .auth import require_token
 from .errors import playwright_error_response
@@ -24,10 +24,16 @@ from ..dashboard.sse import broadcast
 router = APIRouter(prefix="/api", dependencies=[Depends(require_token)])
 
 
+class Viewport(BaseModel):
+    width: int = Field(gt=0, le=10000)
+    height: int = Field(gt=0, le=10000)
+
+
 class CreateContextBody(BaseModel):
     name: str
     profile: str | None = None
     external: bool = False
+    viewport: Viewport | None = None
 
 
 class GotoBody(BaseModel):
@@ -56,7 +62,12 @@ async def list_contexts_route():
 
 @router.post("/contexts", status_code=201)
 async def create_context_route(body: CreateContextBody):
-    meta = await create_context(name=body.name, profile=body.profile, external=body.external)
+    meta = await create_context(
+        name=body.name,
+        profile=body.profile,
+        external=body.external,
+        viewport=body.viewport.model_dump() if body.viewport else None,
+    )
     insert_log(context_id=meta["id"], level="info", message=f"Context created: {body.name}")
     broadcast(event="context:created", data=meta)
     return meta
