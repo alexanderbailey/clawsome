@@ -161,10 +161,12 @@ All endpoints are under `/api/`. If `CLAWSOME_TOKEN` is set, every request needs
 
 | Method | Endpoint | Body | Description |
 | --- | --- | --- | --- |
-| `POST` | `/api/contexts` | `{ name, profile?, external? }` | Create a browser context |
+| `POST` | `/api/contexts` | `{ name, profile?, external?, viewport? }` | Create a browser context |
 | `GET` | `/api/contexts` | - | List all contexts |
 | `GET` | `/api/contexts/:id` | - | Get context details |
 | `DELETE` | `/api/contexts/:id` | - | Destroy context and free resources |
+
+`viewport` is optional and defaults to `{ "width": 1280, "height": 720 }`. Pass e.g. `{ "width": 390, "height": 844 }` to check how a page renders on a phone-sized screen. The chosen viewport is reflected back in the context metadata.
 
 ### Browser Actions
 
