@@ -13,6 +13,21 @@ router = APIRouter()
 
 HISTORY_PAGE_SIZE = 50
 
+# Where a detail page's "back" link should point, keyed by the ?from= param.
+BACK_TARGETS = {
+    "history": ("/history", "history"),
+    "summary": ("/summary", "summary"),
+}
+
+
+def _back(from_: str | None) -> dict:
+    url, label = BACK_TARGETS.get(from_ or "", BACK_TARGETS["summary"])
+    return {
+        "back_url": url,
+        "back_label": label,
+        "from_query": f"?from={from_}" if from_ in BACK_TARGETS else "",
+    }
+
 
 @router.get("/", response_class=RedirectResponse)
 async def index():
@@ -50,6 +65,7 @@ async def history(request: Request, page: int = 1):
 
 @router.get("/context/{ctx_id}", response_class=HTMLResponse)
 async def context_view(request: Request, ctx_id: str):
+    from_ = request.query_params.get("from")
     screenshots = list_screenshots(ctx_id)
     entry = get_alive_context(ctx_id)
     if not entry:
@@ -59,13 +75,27 @@ async def context_view(request: Request, ctx_id: str):
             context["alive"] = False
             return templates.TemplateResponse(
                 "context.html",
-                {"request": request, "title": db_ctx["name"], "context": context, "screenshots": screenshots},
+                {
+                    "request": request,
+                    "title": db_ctx["name"],
+                    "context": context,
+                    "screenshots": screenshots,
+                    # A stopped context is only reachable from history in practice,
+                    # so default its back link there.
+                    **_back(from_ or "history"),
+                },
             )
         return HTMLResponse("Context not found", status_code=404)
     context = {**entry["meta"], "alive": True}
     return templates.TemplateResponse(
         "context.html",
-        {"request": request, "title": entry["meta"]["name"], "context": context, "screenshots": screenshots},
+        {
+            "request": request,
+            "title": entry["meta"]["name"],
+            "context": context,
+            "screenshots": screenshots,
+            **_back(from_),
+        },
     )
 
 
@@ -83,6 +113,7 @@ async def logs_view(request: Request, ctx_id: str):
             "context_id": ctx_id,
             "context_name": name,
             "logs": list(reversed(logs)),
+            **_back(request.query_params.get("from") or (None if entry else "history")),
         },
     )
 

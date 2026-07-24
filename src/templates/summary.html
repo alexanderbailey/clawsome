@@ -27,18 +27,28 @@
 
     function connectCard(card) {
       var id = card.id.replace('ctx-', '');
-      if (conns[id]) return;
       var img = card.querySelector('.card-thumb');
       if (!img) return;
-      conns[id] = liveScreenshot(
-        proto + '//' + location.host + '/ws/screenshots/' + id,
-        function(blob) {
-          var url = URL.createObjectURL(blob);
-          img.onload = function() { URL.revokeObjectURL(url); };
-          img.src = url;
-        },
-        function(state) { card.setAttribute('data-conn', state); }
-      );
+      // Re-rendering the list creates fresh <img> nodes. A socket bound to a
+      // detached node would keep streaming into nothing, so rebind when the
+      // element we're painting into has changed.
+      var existing = conns[id];
+      if (existing) {
+        if (existing.img === img) return;
+        existing.conn.close();
+      }
+      conns[id] = {
+        img: img,
+        conn: liveScreenshot(
+          proto + '//' + location.host + '/ws/screenshots/' + id,
+          function(blob) {
+            var url = URL.createObjectURL(blob);
+            img.onload = function() { URL.revokeObjectURL(url); };
+            img.src = url;
+          },
+          function(state) { card.setAttribute('data-conn', state); }
+        ),
+      };
     }
 
     function sync() {
@@ -51,17 +61,29 @@
       });
       for (var id in conns) {
         if (!active[id]) {
-          conns[id].close();
+          conns[id].conn.close();
           delete conns[id];
         }
       }
+    }
+
+    function idsOf(root) {
+      return Array.prototype.map
+        .call(root.querySelectorAll('.card'), function(c) { return c.id; })
+        .join(',');
     }
 
     function refresh() {
       fetch('/partials/context-list')
         .then(function(r) { return r.text(); })
         .then(function(html) {
-          document.getElementById('context-list').innerHTML = html;
+          var list = document.getElementById('context-list');
+          // Only touch the DOM when the set of contexts actually changed, so
+          // the periodic poll doesn't tear down live thumbnails needlessly.
+          var next = document.createElement('div');
+          next.innerHTML = html;
+          if (idsOf(next) === idsOf(list)) return;
+          list.innerHTML = html;
           sync();
         })
         .catch(function() {});
@@ -72,8 +94,13 @@
     var banner = document.getElementById('conn-banner');
     liveUpdates('/sse/updates', ['context:created', 'context:destroyed'],
       function() { refresh(); },
-      function(state) { banner.setAttribute('data-conn', state); }
+      function(state) { banner.setAttribute('data-conn', state); },
+      function() { refresh(); }   // re-sync: events during the outage are lost
     );
+
+    // Safety net: reconcile the list periodically even if the event stream is
+    // wedged, so the page can never sit indefinitely on a stale set of tiles.
+    setInterval(refresh, 15000);
   })();
 </script>
 

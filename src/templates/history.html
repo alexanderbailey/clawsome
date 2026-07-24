@@ -10,7 +10,7 @@
     {% for ctx in contexts %}
       <div class="card">
         {% if ctx.thumbnail %}
-          <a href="/context/{{ ctx.id }}">
+          <a href="/context/{{ ctx.id }}?from=history">
             <img class="card-thumb"
                  src="/api/contexts/{{ ctx.id }}/screenshots/{{ ctx.thumbnail.filename }}"
                  alt="{{ ctx.name }}">
@@ -32,8 +32,8 @@
           </div>
         </div>
         <div class="card-actions">
-          <a class="btn" href="/context/{{ ctx.id }}">View</a>
-          <a class="btn" href="/logs/{{ ctx.id }}">Logs</a>
+          <a class="btn" href="/context/{{ ctx.id }}?from=history">View</a>
+          <a class="btn" href="/logs/{{ ctx.id }}?from=history">Logs</a>
         </div>
       </div>
     {% endfor %}
