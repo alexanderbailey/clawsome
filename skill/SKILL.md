@@ -74,6 +74,8 @@ Available actions:
 
 All actions accept an optional `timeout` in milliseconds.
 
+Every `goto` and `exec` response also includes the page's current `url` and `title`, so you can see where an action landed without a separate request. If an action fails in the browser (timeout, missing selector, navigation error), the response is a `400` with `{"error", "message", "url"}` instead.
+
 ### Take a screenshot
 
 ```bash
