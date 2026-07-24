@@ -193,11 +193,18 @@ All endpoints are under `/api/`. If `CLAWSOME_TOKEN` is set, every request needs
 | `type` | `selector`, `value` | Fill a text field |
 | `select` | `selector`, `value` | Choose a dropdown option |
 | `wait` | `selector` | Wait for an element to appear |
+| `scroll` | - | Scroll the page. Pass `selector` to scroll an element into view, or `value` as a pixel delta or one of `top`, `bottom`, `page`, `-page`. Returns the resulting `position` |
+| `press` | `value` | Press a key (e.g. `Enter`). With `selector`, focuses that element first; without, sends to the page |
+| `hover` | `selector` | Hover an element, for menus that open on hover |
+| `back` | - | Go back in history |
+| `reload` | - | Reload the current page |
 | `evaluate` | `script` | Run JavaScript in the page |
 | `waitForNavigation` | - | Wait for the page URL to settle. Pass a glob in `selector` to wait for a specific URL (default `**/*`) |
 | `solveTurnstile` | - | Click through a Cloudflare Turnstile checkbox if one is present, otherwise proceed |
 
 All actions accept an optional `timeout` in milliseconds.
+
+If a click opens a new tab (`target="_blank"` or `window.open`), the context follows it automatically and subsequent actions apply to the new tab. If that tab is closed, the context falls back to another open page.
 
 </details>
 

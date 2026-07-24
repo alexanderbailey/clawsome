@@ -79,11 +79,18 @@ Available actions:
 - `type`: fill a text field. Requires `selector` and `value`.
 - `select`: select a dropdown option. Requires `selector` and `value`.
 - `wait`: wait for an element to appear. Requires `selector`.
+- `scroll`: scroll the page. Pass `selector` to bring an element into view, or `value` as a pixel delta (`"500"`, `"-300"`) or one of `top`, `bottom`, `page`, `-page`. Screenshots only capture the visible viewport, so scroll before screenshotting anything below the fold.
+- `press`: press a key. Requires `value` (e.g. `"Enter"`); with `selector` the element is focused first. Use this to submit a search box.
+- `hover`: hover an element, for menus that only open on hover. Requires `selector`.
+- `back`: go back in history.
+- `reload`: reload the current page.
 - `evaluate`: run JavaScript in the page. Use `script` instead of `selector`.
 - `waitForNavigation`: wait for the page URL to settle after a click or form submit. Pass a URL glob in `selector` to wait for a specific destination.
 - `solveTurnstile`: click through a Cloudflare Turnstile checkbox if the page shows one. Returns `{"status": "no_challenge"}` when there is nothing to solve.
 
 All actions accept an optional `timeout` in milliseconds.
+
+If a click opens a new tab, the context follows it automatically — no extra step is needed, and later actions apply to the new tab.
 
 Every `goto` and `exec` response also includes the page's current `url` and `title`, so you can see where an action landed without a separate request. If an action fails in the browser (timeout, missing selector, navigation error), the response is a `400` with `{"error", "message", "url"}` instead.
 
