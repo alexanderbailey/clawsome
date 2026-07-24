@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import os
 import time
@@ -164,6 +165,22 @@ SNAPSHOT_SCRIPT = """
 
 DEFAULT_VIEWPORT = {"width": 1280, "height": 720}
 
+# Destroy contexts idle beyond this many seconds. 0 disables expiry.
+CONTEXT_TTL = float(os.environ.get("CLAWSOME_CONTEXT_TTL", "1800"))
+REAPER_INTERVAL = 30.0
+
+
+def _now_iso() -> str:
+    return datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def touch_context(ctx_id: str):
+    """Mark a context as active. Called on any API request that touches it."""
+    entry = _alive.get(ctx_id)
+    if entry:
+        entry["last_activity"] = time.time()
+        entry["meta"]["last_activity"] = _now_iso()
+
 
 class ProfileInUseError(Exception):
     """Raised when a profile is already held by another live context."""
@@ -193,6 +210,8 @@ async def create_context(
 ) -> dict:
     ctx_id = str(uuid.uuid4())
 
+    now = time.time()
+
     if external:
         meta = {
             "id": ctx_id,
@@ -201,8 +220,15 @@ async def create_context(
             "persistent": False,
             "external": True,
             "viewport": None,
+            "created_at": _now_iso(),
+            "last_activity": _now_iso(),
         }
-        _alive[ctx_id] = {"context": None, "page": None, "meta": meta}
+        _alive[ctx_id] = {
+            "context": None,
+            "page": None,
+            "meta": meta,
+            "last_activity": now,
+        }
         insert_context(id=ctx_id, name=name, profile=None)
         return meta
 
@@ -236,8 +262,15 @@ async def create_context(
         "persistent": has_persistent,
         "external": False,
         "viewport": vp,
+        "created_at": _now_iso(),
+        "last_activity": _now_iso(),
     }
-    _alive[ctx_id] = {"context": context, "page": page, "meta": meta}
+    _alive[ctx_id] = {
+        "context": context,
+        "page": page,
+        "meta": meta,
+        "last_activity": now,
+    }
 
     insert_context(id=ctx_id, name=name, profile=profile)
 
@@ -396,5 +429,42 @@ async def destroy_all_contexts():
     for ctx_id in list(_alive.keys()):
         try:
             await destroy_context(ctx_id)
+        except Exception:
+            pass
+
+
+async def reap_idle_contexts(on_destroyed=None) -> list[str]:
+    """Destroy contexts idle beyond CONTEXT_TTL. Returns the ids reaped."""
+    if CONTEXT_TTL <= 0:
+        return []
+    now = time.time()
+    reaped = []
+    for ctx_id, entry in list(_alive.items()):
+        idle = now - entry.get("last_activity", now)
+        if idle < CONTEXT_TTL:
+            continue
+        insert_log(
+            context_id=ctx_id,
+            level="warn",
+            message=f"Context expired after {int(idle)}s idle (CLAWSOME_CONTEXT_TTL={int(CONTEXT_TTL)}s)",
+        )
+        try:
+            await destroy_context(ctx_id)
+        except Exception:
+            continue
+        reaped.append(ctx_id)
+        if on_destroyed:
+            on_destroyed(ctx_id)
+    return reaped
+
+
+async def run_reaper(on_destroyed=None):
+    """Periodically reap idle contexts. Runs for the lifetime of the app."""
+    if CONTEXT_TTL <= 0:
+        return
+    while True:
+        await asyncio.sleep(REAPER_INTERVAL)
+        try:
+            await reap_idle_contexts(on_destroyed)
         except Exception:
             pass
