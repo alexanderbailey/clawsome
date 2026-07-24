@@ -193,6 +193,35 @@ class ProfileInUseError(Exception):
         )
 
 
+def _adopt_page(ctx_id: str, page):
+    """Make a newly opened page the context's active one (e.g. target="_blank")."""
+    entry = _alive.get(ctx_id)
+    if not entry:
+        return
+    entry["page"] = page
+    page.on("close", lambda _p=page: _on_page_closed(ctx_id, _p))
+
+
+def _on_page_closed(ctx_id: str, closed):
+    """Fall back to another open page when the active one closes."""
+    entry = _alive.get(ctx_id)
+    if not entry or entry.get("page") is not closed:
+        return
+    context = entry.get("context")
+    remaining = [p for p in context.pages if not p.is_closed()] if context else []
+    entry["page"] = remaining[-1] if remaining else None
+
+
+def _require_page(ctx_id: str):
+    entry = _alive.get(ctx_id)
+    if not entry:
+        raise ValueError(f"Context {ctx_id} not found")
+    page = entry.get("page")
+    if page is None:
+        raise ValueError(f"Context {ctx_id} has no open page")
+    return page
+
+
 def _profile_holder(profile: str) -> dict | None:
     for entry in _alive.values():
         meta = entry["meta"]
@@ -255,6 +284,11 @@ async def create_context(
 
     await page.add_init_script(STEALTH_SCRIPT)
 
+    # Adopt pages opened by the site itself (target="_blank", window.open) so a
+    # click that spawns a tab doesn't leave the context pointing at the old page.
+    context.on("page", lambda new_page: _adopt_page(ctx_id, new_page))
+    page.on("close", lambda _p=page: _on_page_closed(ctx_id, _p))
+
     meta = {
         "id": ctx_id,
         "name": name,
@@ -297,18 +331,13 @@ async def page_state(ctx_id: str) -> dict:
 async def navigate_to(
     ctx_id: str, url: str, *, timeout: int = 30000, wait_until: str = "domcontentloaded"
 ) -> dict:
-    entry = _alive.get(ctx_id)
-    if not entry:
-        raise ValueError(f"Context {ctx_id} not found")
-    await entry["page"].goto(url, wait_until=wait_until, timeout=timeout)
-    return {"url": entry["page"].url}
+    page = _require_page(ctx_id)
+    await page.goto(url, wait_until=wait_until, timeout=timeout)
+    return {"url": page.url}
 
 
 async def get_snapshot(ctx_id: str) -> dict:
-    entry = _alive.get(ctx_id)
-    if not entry:
-        raise ValueError(f"Context {ctx_id} not found")
-    return await entry["page"].evaluate(SNAPSHOT_SCRIPT)
+    return await _require_page(ctx_id).evaluate(SNAPSHOT_SCRIPT)
 
 
 def upload_screenshot(ctx_id: str, png: bytes):
@@ -326,7 +355,7 @@ async def take_screenshot(ctx_id: str) -> bytes:
         if ctx_id in _screenshots:
             return _screenshots[ctx_id]
         raise ValueError(f"No screenshot available for context {ctx_id}")
-    png = await entry["page"].screenshot(type="png")
+    png = await _require_page(ctx_id).screenshot(type="png")
     _save_screenshot(ctx_id, png)
     return png
 
@@ -340,10 +369,7 @@ async def exec_action(
     script: str | None = None,
     timeout: int | None = None,
 ) -> dict:
-    entry = _alive.get(ctx_id)
-    if not entry:
-        raise ValueError(f"Context {ctx_id} not found")
-    page = entry["page"]
+    page = _require_page(ctx_id)
     opts = {"timeout": timeout} if timeout else {}
 
     if action == "click":
@@ -361,6 +387,51 @@ async def exec_action(
     elif action == "wait":
         await page.wait_for_selector(selector, **opts)
         return {"action": "wait", "selector": selector}
+
+    elif action == "scroll":
+        if selector:
+            await page.locator(selector).scroll_into_view_if_needed(**opts)
+        else:
+            # value is a pixel delta, or "top"/"bottom"/"page"/"-page"
+            amount = (value or "page").strip().lower()
+            if amount == "top":
+                await page.evaluate("window.scrollTo(0, 0)")
+            elif amount == "bottom":
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            elif amount in ("page", "-page"):
+                sign = -1 if amount.startswith("-") else 1
+                await page.evaluate(f"window.scrollBy(0, {sign} * window.innerHeight)")
+            else:
+                try:
+                    delta = int(amount)
+                except ValueError:
+                    raise ValueError(
+                        "scroll value must be a pixel amount or one of: top, bottom, page, -page"
+                    )
+                await page.evaluate(f"window.scrollBy(0, {delta})")
+        position = await page.evaluate("({x: window.scrollX, y: window.scrollY})")
+        return {"action": "scroll", "selector": selector, "value": value, "position": position}
+
+    elif action == "press":
+        if not value:
+            raise ValueError("press requires a key in 'value' (e.g. 'Enter')")
+        if selector:
+            await page.press(selector, value, **opts)
+        else:
+            await page.keyboard.press(value)
+        return {"action": "press", "selector": selector, "value": value}
+
+    elif action == "hover":
+        await page.hover(selector, **opts)
+        return {"action": "hover", "selector": selector}
+
+    elif action == "back":
+        await page.go_back(**opts)
+        return {"action": "back"}
+
+    elif action == "reload":
+        await page.reload(**opts)
+        return {"action": "reload"}
 
     elif action == "evaluate":
         result = await page.evaluate(script)
