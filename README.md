@@ -153,6 +153,14 @@ Use it when creating a context:
 { "name": "check prices", "profile": "amazon" }
 ```
 
+A profile can only back one live context at a time (Chromium locks the user-data directory). Creating a second context with a profile that's already in use returns `409`:
+
+```json
+{ "error": "profile_in_use", "message": "Profile 'amazon' is in use by context 3f2a… ('check prices')" }
+```
+
+The profile is released as soon as the holding context is destroyed.
+
 ## REST API
 
 All endpoints are under `/api/`. If `CLAWSOME_TOKEN` is set, every request needs an `Authorization: Bearer <token>` header — see [Security](#security).

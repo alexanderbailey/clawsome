@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from playwright.async_api import Error as PlaywrightError
 from pydantic import BaseModel, Field
 
@@ -18,6 +18,7 @@ from ..browser.contexts import (
     exec_action,
     get_snapshot,
     destroy_context,
+    ProfileInUseError,
 )
 from ..db import insert_log, get_logs_by_context
 from ..dashboard.sse import broadcast
@@ -63,12 +64,18 @@ async def list_contexts_route():
 
 @router.post("/contexts", status_code=201)
 async def create_context_route(body: CreateContextBody):
-    meta = await create_context(
-        name=body.name,
-        profile=body.profile,
-        external=body.external,
-        viewport=body.viewport.model_dump() if body.viewport else None,
-    )
+    try:
+        meta = await create_context(
+            name=body.name,
+            profile=body.profile,
+            external=body.external,
+            viewport=body.viewport.model_dump() if body.viewport else None,
+        )
+    except ProfileInUseError as e:
+        return JSONResponse(
+            status_code=409,
+            content={"error": "profile_in_use", "message": str(e)},
+        )
     insert_log(context_id=meta["id"], level="info", message=f"Context created: {body.name}")
     broadcast(event="context:created", data=meta)
     return meta
