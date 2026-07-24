@@ -82,10 +82,10 @@ Defaults are fine for local use (`PORT=3000`, `HOST=0.0.0.0`). Set `CLAWSOME_TOK
 
 ```bash
 # Development (auto-restarts on file changes)
-uv run uvicorn src.app:app --host 0.0.0.0 --port 3000 --reload
+uv run uvicorn src.app:app --host "${HOST:-0.0.0.0}" --port "${PORT:-3000}" --reload
 
-# Production
-uv run uvicorn src.app:app --host 0.0.0.0 --port 3000
+# Production — reads HOST/PORT from the environment
+uv run python -m src.app
 ```
 
 ### 4. Verify

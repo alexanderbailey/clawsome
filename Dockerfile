@@ -11,6 +11,10 @@ RUN uv sync --frozen --no-dev && \
 COPY src/ src/
 COPY skill/ skill/
 
+ENV HOST=0.0.0.0 \
+    PORT=3000
+
 EXPOSE 3000
 
-CMD ["uv", "run", "uvicorn", "src.app:app", "--host", "0.0.0.0", "--port", "3000"]
+# Shell form so HOST/PORT are expanded at runtime rather than baked in at build.
+CMD uv run uvicorn src.app:app --host "$HOST" --port "$PORT"
