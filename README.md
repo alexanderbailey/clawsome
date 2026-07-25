@@ -32,6 +32,8 @@ Clawsome is a browser automation service you control over a REST API, from any A
 - **AI-driven browser tasks.** An agent creates a context, drives it through the API, and you watch the task happen live on the dashboard. OpenClaw and Claude Code are two examples below; anything that can make an HTTP request works the same way.
 - **Playwright test monitoring.** Run your test suite normally and watch every test live on the dashboard with real-time screenshots and logs.
 
+It's built for driving things you're responsible for — your local dev server, a staging environment, an internal tool, or an account you hold — where the value is watching the work happen rather than trusting a summary of it. Whatever you point it at, it's on you to have the right to automate it, and to respect that site's terms.
+
 Runs anywhere Python and Chromium can. No particular OS or hardware assumed.
 
 ## Screenshots
@@ -140,24 +142,26 @@ Data and profiles are persisted via volumes (`./data` and `./profiles`).
 
 ## Browser Profiles
 
-Profiles save login sessions so Clawsome can access authenticated sites without re-entering credentials.
+Profiles save login sessions so Clawsome can reach authenticated pages without re-entering credentials — a staging environment behind a login, an internal admin tool, your own account on a service.
 
 ```bash
-uv run python -m src.browser.create_profile amazon
+uv run python -m src.browser.create_profile staging
 ```
 
-This opens a visible Chromium window. Log in manually, then close the browser. The session is saved to `./profiles/amazon/`.
+This opens a visible Chromium window. Log in manually, then close the browser. The session is saved to `./profiles/staging/`.
 
 Use it when creating a context:
 
 ```json
-{ "name": "check prices", "profile": "amazon" }
+{ "name": "check the invoice page renders", "profile": "staging" }
 ```
+
+A saved profile is a live logged-in session on disk. Treat `./profiles/` as credentials: anyone who can reach the API can create a context with it (see [Security](#security)).
 
 A profile can only back one live context at a time (Chromium locks the user-data directory). Creating a second context with a profile that's already in use returns `409`:
 
 ```json
-{ "error": "profile_in_use", "message": "Profile 'amazon' is in use by context 3f2a… ('check prices')" }
+{ "error": "profile_in_use", "message": "Profile 'staging' is in use by context 3f2a… ('check the invoice page renders')" }
 ```
 
 The profile is released as soon as the holding context is destroyed.
@@ -205,7 +209,6 @@ Context metadata also carries `created_at` and `last_activity`. A context with n
 | `reload` | - | Reload the current page |
 | `evaluate` | `script` | Run JavaScript in the page |
 | `waitForNavigation` | - | Wait for the page URL to settle. Pass a glob in `selector` to wait for a specific URL (default `**/*`) |
-| `solveTurnstile` | - | Click through a Cloudflare Turnstile checkbox if one is present, otherwise proceed |
 
 All actions accept an optional `timeout` in milliseconds.
 
