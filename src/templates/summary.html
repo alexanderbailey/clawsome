@@ -57,14 +57,47 @@
       }
     }
 
+    // Merge the freshly rendered list into the page instead of replacing it.
+    // Replacing would detach every <img> and kill the sockets painting them,
+    // so tiles that are still present are left exactly as they are.
+    function reconcile(html) {
+      var list = document.getElementById('context-list');
+      // A <template> is inert: parsing here does not kick off the image loads
+      // that a live fragment would (each card's src hits the screenshot API).
+      var tpl = document.createElement('template');
+      tpl.innerHTML = html;
+      var nextGrid = tpl.content.querySelector('.grid');
+      var grid = list.querySelector('.grid');
+
+      if (!nextGrid || !grid) {
+        // Crossing into or out of the empty state: nothing worth preserving.
+        list.replaceChildren(tpl.content);
+      } else {
+        var seen = {};
+        nextGrid.querySelectorAll('.card').forEach(function(card) {
+          seen[card.id] = true;
+          if (!document.getElementById(card.id)) {
+            grid.appendChild(document.importNode(card, true));
+          }
+        });
+        grid.querySelectorAll('.card').forEach(function(card) {
+          if (!seen[card.id]) card.remove();
+        });
+      }
+      sync();
+    }
+
+    var pendingRefresh;
     function refresh() {
-      fetch('/partials/context-list')
-        .then(function(r) { return r.text(); })
-        .then(function(html) {
-          document.getElementById('context-list').innerHTML = html;
-          sync();
-        })
-        .catch(function() {});
+      // Bursts are normal (a test suite creating many contexts at once), so
+      // collapse them into a single fetch.
+      clearTimeout(pendingRefresh);
+      pendingRefresh = setTimeout(function() {
+        fetch('/partials/context-list')
+          .then(function(r) { return r.text(); })
+          .then(reconcile)
+          .catch(function() {});
+      }, 250);
     }
 
     sync();
@@ -72,8 +105,15 @@
     var banner = document.getElementById('conn-banner');
     liveUpdates('/sse/updates', ['context:created', 'context:destroyed'],
       function() { refresh(); },
-      function(state) { banner.setAttribute('data-conn', state); }
+      function(state) { banner.setAttribute('data-conn', state); },
+      function() { refresh(); }   // re-sync: events during the outage are lost
     );
+
+    // Safety net. The watchdog in live.js only notices a stream that goes
+    // silent; a client whose queue overflows server-side is dropped from the
+    // broadcast set while still receiving pings, so it looks healthy but never
+    // gets another event. Reconciling is cheap now that it is non-destructive.
+    setInterval(refresh, 15000);
   })();
 </script>
 

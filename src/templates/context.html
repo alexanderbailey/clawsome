@@ -2,7 +2,7 @@
 {% block content %}
 
 <div style="margin-bottom: 1rem;">
-  <a href="/summary">&larr; Back to summary</a>
+  <a href="{{ back_url }}">&larr; Back to {{ back_label }}</a>
 </div>
 
 <h2 style="margin-bottom: 0.5rem;">{{ context.name }}</h2>
@@ -16,11 +16,11 @@
   {% if context.profile %}
     <span>Profile: {{ context.profile }}</span>
   {% endif %}
-  <a class="btn" href="/logs/{{ context.id }}">View logs</a>
+  <a class="btn" href="/logs/{{ context.id }}{{ from_query }}">View logs</a>
   {% if context.alive %}
     <button class="btn btn-danger"
             hx-delete="/api/contexts/{{ context.id }}"
-            hx-on::after-request="window.location='/summary'">
+            hx-on::after-request="window.location='{{ back_url }}'">
       Stop
     </button>
   {% endif %}

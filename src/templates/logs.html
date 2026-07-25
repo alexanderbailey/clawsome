@@ -2,9 +2,9 @@
 {% block content %}
 
 <div style="margin-bottom: 1rem;">
-  <a href="/summary">&larr; Back to summary</a>
+  <a href="{{ back_url }}">&larr; Back to {{ back_label }}</a>
   &middot;
-  <a href="/context/{{ context_id }}">Live view</a>
+  <a href="/context/{{ context_id }}{{ from_query }}">Live view</a>
 </div>
 
 <h2 style="margin-bottom: 1rem;">Logs &mdash; {{ context_name }}</h2>
@@ -25,15 +25,17 @@
   (function() {
     const container = document.getElementById('log-stream');
     const id = '{{ context_id }}';
-    const source = new EventSource('/sse/updates');
-    source.addEventListener('log:new', (e) => {
-      const data = JSON.parse(e.data);
+    liveUpdates('/sse/updates', ['log:new'], (type, data) => {
       if (data.contextId !== id) return;
       const div = document.createElement('div');
       div.className = 'log-entry log-' + (data.level || 'info');
-      const now = new Date().toISOString().replace('T', ' ').split('.')[0];
-      div.innerHTML = '<span class="log-time">' + now + '</span> '
-        + '[' + (data.level || 'info').toUpperCase() + '] ' + data.message;
+      const time = document.createElement('span');
+      time.className = 'log-time';
+      time.textContent = new Date().toISOString().replace('T', ' ').split('.')[0];
+      div.appendChild(time);
+      // Log text is untrusted; append it as text rather than markup.
+      div.appendChild(document.createTextNode(
+        ' [' + (data.level || 'info').toUpperCase() + '] ' + data.message));
       container.appendChild(div);
       container.scrollTop = container.scrollHeight;
     });
