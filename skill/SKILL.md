@@ -45,7 +45,7 @@ curl -s -X POST $CLAWSOME_URL/api/contexts \
 ```
 
 - `name`: a short description of the task
-- `profile`: use a saved login profile (e.g. "amazon", "github") or omit for no profile
+- `profile`: use a saved login profile (e.g. "staging", "admin") or omit for no profile
 - `viewport`: optional `{"width": ..., "height": ...}`, defaults to `1280x720`. Use a small size (e.g. `{"width": 390, "height": 844}`) to check a mobile layout.
 
 Returns: `{"id": "...", "name": "...", ...}`
@@ -86,7 +86,6 @@ Available actions:
 - `reload`: reload the current page.
 - `evaluate`: run JavaScript in the page. Use `script` instead of `selector`.
 - `waitForNavigation`: wait for the page URL to settle after a click or form submit. Pass a URL glob in `selector` to wait for a specific destination.
-- `solveTurnstile`: click through a Cloudflare Turnstile checkbox if the page shows one. Returns `{"status": "no_challenge"}` when there is nothing to solve.
 
 All actions accept an optional `timeout` in milliseconds.
 
@@ -134,7 +133,8 @@ Always destroy contexts when tasks are complete to free resources.
 
 - Always create a context before performing any browser actions.
 - Take a snapshot after navigating to an unfamiliar page instead of guessing selectors.
-- Use profiles for sites that require login (amazon, github, banking, etc.).
+- Use profiles to reach pages behind a login the operator has already set up (e.g. `staging`, an internal tool, their own account on a service).
+- Drive sites the operator owns or is authorized to automate. If a task looks like it targets someone else's site, or the page presents a bot check or anything else indicating automation isn't welcome, stop and tell the user rather than working around it.
 - Log each significant step so the dashboard stays informative.
 - Handle errors gracefully. If a selector isn't found, try alternatives or report the issue.
 - Destroy contexts when done, even if the task fails.
