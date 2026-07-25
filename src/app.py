@@ -9,7 +9,12 @@ from fastapi.staticfiles import StaticFiles
 from .paths import DATA_DIR, DB_PATH
 from .db import init_db
 from .browser.manager import launch_browser, close_browser
-from .browser.contexts import destroy_all_contexts, run_capture_loop, run_reaper
+from .browser.contexts import (
+    destroy_all_contexts,
+    run_capture_loop,
+    run_reaper,
+    run_screenshot_sweeper,
+)
 from .dashboard.sse import broadcast
 from .api.contexts import router as api_router
 from .dashboard.routes import router as dashboard_router
@@ -31,9 +36,11 @@ async def lifespan(app: FastAPI):
         run_reaper(lambda ctx_id: broadcast(event="context:destroyed", data={"id": ctx_id}))
     )
     capturer = asyncio.create_task(run_capture_loop())
+    sweeper = asyncio.create_task(run_screenshot_sweeper())
     yield
     reaper.cancel()
     capturer.cancel()
+    sweeper.cancel()
     await destroy_all_contexts()
     await close_browser()
 

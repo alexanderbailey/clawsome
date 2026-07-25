@@ -22,6 +22,87 @@ _SAVE_INTERVAL = float(os.environ.get("CLAWSOME_SCREENSHOT_INTERVAL", "1.0"))  #
 # Dedup disk saves: id -> hash of last saved frame
 _last_hash: dict[str, str] = {}
 
+# Retention. Keep at most this many frames per context, and drop frames older
+# than this many days. Either can be set to 0 to switch that rule off.
+SCREENSHOT_LIMIT = int(os.environ.get("CLAWSOME_SCREENSHOT_LIMIT", "500"))
+SCREENSHOT_MAX_AGE_DAYS = float(os.environ.get("CLAWSOME_SCREENSHOT_MAX_AGE_DAYS", "7"))
+
+# How often to re-check every context directory. The per-context cap is applied
+# on write, so this is really about ageing out contexts that have stopped.
+SWEEP_INTERVAL = 3600.0
+
+
+def _frames(ctx_dir) -> list:
+    """Saved frames in a context directory, oldest first.
+
+    Filenames are millisecond timestamps, so they carry their own age. Anything
+    that isn't one didn't come from here and is left alone.
+    """
+    frames = []
+    for f in ctx_dir.glob("*.png"):
+        if f.stem.isdigit():
+            frames.append(f)
+    return sorted(frames, key=lambda f: int(f.stem))
+
+
+def _entry(f) -> dict:
+    ts = datetime.fromtimestamp(int(f.stem) / 1000, tz=timezone.utc)
+    return {"filename": f.name, "timestamp": ts.strftime("%Y-%m-%d %H:%M:%S")}
+
+
+def prune_screenshots(ctx_id: str) -> int:
+    """Apply the retention rules to one context. Returns the number deleted."""
+    d = SCREENSHOTS_DIR / ctx_id
+    if not d.is_dir():
+        return 0
+    frames = _frames(d)
+    doomed = []
+    if SCREENSHOT_MAX_AGE_DAYS > 0:
+        cutoff = (time.time() - SCREENSHOT_MAX_AGE_DAYS * 86400) * 1000
+        # Oldest first, so everything past the cutoff is a prefix of the list.
+        doomed = [f for f in frames if int(f.stem) < cutoff]
+        frames = frames[len(doomed):]
+    if SCREENSHOT_LIMIT > 0 and len(frames) > SCREENSHOT_LIMIT:
+        doomed += frames[: len(frames) - SCREENSHOT_LIMIT]
+    for f in doomed:
+        f.unlink(missing_ok=True)
+    return len(doomed)
+
+
+def sweep_screenshots() -> int:
+    """Apply retention across every context on disk, including stopped ones."""
+    if SCREENSHOT_LIMIT <= 0 and SCREENSHOT_MAX_AGE_DAYS <= 0:
+        return 0
+    if not SCREENSHOTS_DIR.is_dir():
+        return 0
+    removed = 0
+    for d in SCREENSHOTS_DIR.iterdir():
+        if not d.is_dir():
+            continue
+        removed += prune_screenshots(d.name)
+        # A stopped context whose frames have all aged out leaves an empty
+        # directory behind; a live one may be about to write into it.
+        if d.name not in _alive and not any(d.iterdir()):
+            try:
+                d.rmdir()
+            except OSError:
+                pass
+    return removed
+
+
+async def run_screenshot_sweeper():
+    """Periodically age out old screenshots. Runs for the lifetime of the app."""
+    if SCREENSHOT_LIMIT <= 0 and SCREENSHOT_MAX_AGE_DAYS <= 0:
+        return
+    while True:
+        # Swept on startup too, so a long-stopped instance tidies up on boot
+        # rather than an hour later.
+        try:
+            sweep_screenshots()
+        except Exception:
+            pass
+        await asyncio.sleep(SWEEP_INTERVAL)
+
 
 def _save_screenshot(ctx_id: str, png: bytes, *, force: bool = False):
     now = time.time()
@@ -36,34 +117,24 @@ def _save_screenshot(ctx_id: str, png: bytes, *, force: bool = False):
     d.mkdir(parents=True, exist_ok=True)
     ts = int(now * 1000)
     (d / f"{ts}.png").write_bytes(png)
+    # Enforce the cap here rather than waiting for the sweep: a busy context
+    # can add hundreds of frames between sweeps.
+    prune_screenshots(ctx_id)
 
 
 def list_screenshots(ctx_id: str) -> list[dict]:
     d = SCREENSHOTS_DIR / ctx_id
-    if not d.exists():
+    if not d.is_dir():
         return []
-    files = sorted(d.glob("*.png"), reverse=True)
-    result = []
-    for f in files:
-        ts_ms = int(f.stem)
-        ts = datetime.fromtimestamp(ts_ms / 1000, tz=timezone.utc)
-        result.append({
-            "filename": f.name,
-            "timestamp": ts.strftime("%Y-%m-%d %H:%M:%S"),
-        })
-    return result
+    return [_entry(f) for f in reversed(_frames(d))]
 
 
 def latest_screenshot(ctx_id: str) -> dict | None:
     d = SCREENSHOTS_DIR / ctx_id
-    if not d.exists():
+    if not d.is_dir():
         return None
-    files = sorted(d.glob("*.png"), reverse=True)
-    if not files:
-        return None
-    f = files[0]
-    ts = datetime.fromtimestamp(int(f.stem) / 1000, tz=timezone.utc)
-    return {"filename": f.name, "timestamp": ts.strftime("%Y-%m-%d %H:%M:%S")}
+    frames = _frames(d)
+    return _entry(frames[-1]) if frames else None
 
 
 def get_saved_screenshot(ctx_id: str, filename: str) -> bytes:
