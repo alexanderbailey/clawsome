@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head><title>Clawsome Test Page</title></head>
+<body style="margin:0">
+  <h1 id="heading">Test Page</h1>
+  <p>Some visible text for the snapshot.</p>
+
+  <a id="more-link" href="/other.html">More info</a>
+  <a id="new-tab" href="/other.html" target="_blank">Open in new tab</a>
+
+  <button id="go">Go</button>
+  <input id="search" type="text" placeholder="Search...">
+  <select id="choice"><option>Alpha</option><option>Beta</option></select>
+
+  <div id="pressed">no-key</div>
+  <div id="hovered">not-hovered</div>
+  <div id="hover-me">hover target</div>
+
+  <div style="display:none"><a id="hidden-link" href="/nope.html">Hidden</a></div>
+
+  <div style="height:3000px"></div>
+  <div id="bottom">Bottom marker</div>
+
+  <script>
+    document.getElementById('search').addEventListener('keydown', function (e) {
+      document.getElementById('pressed').textContent = 'key:' + e.key;
+    });
+    document.getElementById('hover-me').addEventListener('mouseenter', function () {
+      document.getElementById('hovered').textContent = 'hovered';
+    });
+  </script>
+</body>
+</html>

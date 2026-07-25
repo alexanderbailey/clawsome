@@ -10,3 +10,15 @@ dependencies = [
     "sse-starlette>=3.3.2",
     "uvicorn[standard]>=0.41.0",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.0",
+    "pytest-timeout>=2.3.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Every test drives a real browser, so a hang should fail rather than block CI.
+timeout = 120
+addopts = "-ra"

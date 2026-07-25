@@ -4,14 +4,10 @@ import os
 import time
 import uuid
 from datetime import datetime, timezone
-from pathlib import Path
 
 from .manager import get_browser, get_playwright, LAUNCH_ARGS
 from ..db import insert_context, update_context_status, insert_log
-
-ROOT = Path(__file__).parent.parent.parent
-PROFILES_DIR = ROOT / "profiles"
-SCREENSHOTS_DIR = ROOT / "data" / "screenshots"
+from ..paths import PROFILES_DIR, SCREENSHOTS_DIR
 
 # In-memory map: id -> { context, page, meta }
 _alive: dict[str, dict] = {}
@@ -216,6 +212,18 @@ def _require_page(ctx_id: str):
     entry = _alive.get(ctx_id)
     if not entry:
         raise ValueError(f"Context {ctx_id} not found")
+
+    # Resolve the newest open tab rather than trusting the cached one. The
+    # "page" event that adopts a tab is dispatched asynchronously, so a click
+    # that opens one can return before it fires — but the browser context
+    # already lists the tab, so reading it here makes adoption immediate for
+    # the next call instead of racing.
+    context = entry.get("context")
+    if context:
+        open_pages = [p for p in context.pages if not p.is_closed()]
+        if open_pages and open_pages[-1] is not entry.get("page"):
+            _adopt_page(ctx_id, open_pages[-1])
+
     page = entry.get("page")
     if page is None:
         raise ValueError(f"Context {ctx_id} has no open page")
