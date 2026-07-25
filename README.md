@@ -177,6 +177,8 @@ All endpoints are under `/api/`. If `CLAWSOME_TOKEN` is set, every request needs
 
 `viewport` is optional and defaults to `{ "width": 1280, "height": 720 }`. Pass e.g. `{ "width": 390, "height": 844 }` to check how a page renders on a phone-sized screen. The chosen viewport is reflected back in the context metadata.
 
+The server records the screenshot history itself: a frame after every `goto` and `exec`, plus a periodic capture every `CLAWSOME_CAPTURE_INTERVAL` seconds (default `3`, `0` disables). History is therefore complete whether or not anyone had the dashboard open at the time, and identical frames are still skipped. External contexts are untouched — they push their own frames.
+
 Context metadata also carries `created_at` and `last_activity`. A context with no API activity for `CLAWSOME_CONTEXT_TTL` seconds (default `1800`, `0` disables) is destroyed automatically, so a client that crashes or forgets to clean up doesn't leak a Chromium page. The expiry is written to the context's log stream, so the dashboard shows why it stopped. Any API request touching a context resets its timer.
 
 ### Browser Actions

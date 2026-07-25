@@ -89,7 +89,7 @@ class Client:
         return self.post(f"/api/contexts/{ctx_id}/goto", {"url": url, **body})
 
 
-def _start_server(env_extra: dict[str, str]) -> tuple[subprocess.Popen, str]:
+def start_server(env_extra: dict[str, str]) -> tuple[subprocess.Popen, str]:
     port = _free_port()
     env = {**os.environ, "HOST": "127.0.0.1", "PORT": str(port), **env_extra}
     # Each server gets its own data dir so runs cannot interfere with a
@@ -115,7 +115,7 @@ def _start_server(env_extra: dict[str, str]) -> tuple[subprocess.Popen, str]:
     raise RuntimeError("server did not become healthy in time")
 
 
-def _stop_server(proc: subprocess.Popen):
+def stop_server(proc: subprocess.Popen):
     proc.terminate()
     try:
         proc.wait(timeout=30)
@@ -157,9 +157,9 @@ def site() -> str:
 
 @pytest.fixture(scope="session")
 def server():
-    proc, base = _start_server({})
+    proc, base = start_server({})
     yield base
-    _stop_server(proc)
+    stop_server(proc)
 
 
 @pytest.fixture
@@ -179,6 +179,6 @@ def ctx(client):
 def token_server():
     """A second server with bearer-token auth enabled."""
     token = "test-token-value"
-    proc, base = _start_server({"CLAWSOME_TOKEN": token})
+    proc, base = start_server({"CLAWSOME_TOKEN": token})
     yield base, token
-    _stop_server(proc)
+    stop_server(proc)
