@@ -49,6 +49,13 @@
     };
   };
 
+  // Retitle the tab as what the page is showing changes, in the same shape the
+  // server renders in layout.html. Worth keeping current: the dashboard is
+  // usually a background tab, where the title is all you can see of it.
+  window.setPageTitle = function (text) {
+    document.title = text ? text + ' — Clawsome' : 'Clawsome';
+  };
+
   // Updates stream over SSE.
   //
   // EventSource cannot be trusted to notice a dead server: when the process

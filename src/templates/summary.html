@@ -43,6 +43,7 @@
 
     function sync() {
       var cards = document.querySelectorAll('#context-list .card');
+      setPageTitle(cards.length ? 'Summary (' + cards.length + ')' : 'Summary');
       var active = {};
       cards.forEach(function(card) {
         var id = card.id.replace('ctx-', '');

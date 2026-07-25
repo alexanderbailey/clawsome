@@ -5,20 +5,20 @@
   <a href="{{ back_url }}">&larr; Back to {{ back_label }}</a>
 </div>
 
-<h2 style="margin-bottom: 0.5rem;">{{ context.name }}</h2>
+<h2 id="context-name" style="margin-bottom: 0.5rem;">{{ context.name }}</h2>
 
 <div class="card-meta" style="margin-bottom: 1rem;">
   {% if context.alive %}
-    <span class="badge badge-running">running</span>
+    <span id="status-badge" class="badge badge-running">running</span>
   {% else %}
-    <span class="badge badge-stopped">stopped</span>
+    <span id="status-badge" class="badge badge-stopped">stopped</span>
   {% endif %}
   {% if context.profile %}
     <span>Profile: {{ context.profile }}</span>
   {% endif %}
   <a class="btn" href="/logs/{{ context.id }}{{ from_query }}">View logs</a>
   {% if context.alive %}
-    <button class="btn btn-danger"
+    <button id="stop-button" class="btn btn-danger"
             hx-delete="/api/contexts/{{ context.id }}"
             hx-on::after-request="window.location='{{ back_url }}'">
       Stop
@@ -74,7 +74,25 @@
       // Preloaded entries can overflow the container; show the newest.
       container.scrollTop = container.scrollHeight;
 
-      liveUpdates('/sse/updates', ['log:new'], (type, data) => {
+      // A context can stop without this page doing anything — idle expiry, or
+      // another client stopping it — so reflect that rather than showing
+      // "running" over a frozen last frame.
+      function markStopped() {
+        const badge = document.getElementById('status-badge');
+        badge.className = 'badge badge-stopped';
+        badge.textContent = 'stopped';
+        const stop = document.getElementById('stop-button');
+        if (stop) stop.remove();
+        // Read the name from the page rather than templating it into script.
+        setPageTitle(
+          document.getElementById('context-name').textContent.trim() + ' (stopped)');
+      }
+
+      liveUpdates('/sse/updates', ['log:new', 'context:destroyed'], (type, data) => {
+        if (type === 'context:destroyed') {
+          if (data.id === id) markStopped();
+          return;
+        }
         if (data.contextId !== id) return;
         if (empty) empty.style.display = 'none';
         const level = data.level || 'info';
