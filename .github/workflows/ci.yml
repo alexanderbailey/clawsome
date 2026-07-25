@@ -16,10 +16,12 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        # Pinned to the exact release: setup-uv has not published a floating
+        # v9 major tag, only v9.0.0.
+        uses: astral-sh/setup-uv@v9.0.0
         with:
           enable-cache: true
 
@@ -31,7 +33,7 @@ jobs:
 
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('uv.lock') }}
