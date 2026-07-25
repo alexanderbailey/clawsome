@@ -245,6 +245,8 @@ When a `goto` or `exec` fails in the browser — a timeout, a missing selector, 
 | `GET` | `/api/contexts/:id/logs` | - | Get log entries |
 | `POST` | `/api/contexts/:id/logs` | `{ level?, message }` | Append a log entry |
 
+Saved frames are pruned so a long-running instance doesn't fill the disk: each context keeps its most recent `CLAWSOME_SCREENSHOT_LIMIT` frames (default `500`), and frames older than `CLAWSOME_SCREENSHOT_MAX_AGE_DAYS` days (default `7`) are deleted. The cap is applied as frames are written; ageing runs hourly and on startup, and covers stopped contexts too. Set either to `0` to switch that rule off, or both to keep everything.
+
 ### Example workflow
 
 ```bash
