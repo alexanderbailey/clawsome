@@ -37,12 +37,28 @@ async def index():
     return RedirectResponse(url="/summary")
 
 
+def _summary_title(count: int) -> str:
+    """Tab title for the summary. The count is the point of a background tab."""
+    return f"Summary ({count})" if count else "Summary"
+
+
 @router.get("/summary", response_class=HTMLResponse)
 async def summary(request: Request):
     contexts = list_alive_contexts()
     return templates.TemplateResponse(
-        "summary.html", {"request": request, "title": "Summary", "contexts": contexts}
+        "summary.html",
+        {
+            "request": request,
+            "title": _summary_title(len(contexts)),
+            "contexts": contexts,
+        },
     )
+
+
+@router.get("/favicon.ico")
+async def favicon():
+    """Browsers ask for this by path, regardless of the <link> in the page."""
+    return RedirectResponse(url="/public/favicon.png")
 
 
 @router.get("/history", response_class=HTMLResponse)
@@ -80,7 +96,7 @@ async def context_view(request: Request, ctx_id: str):
                 "context.html",
                 {
                     "request": request,
-                    "title": db_ctx["name"],
+                    "title": f"{db_ctx['name']} (stopped)",
                     "context": context,
                     "screenshots": screenshots,
                     **_back(from_),
@@ -94,7 +110,7 @@ async def context_view(request: Request, ctx_id: str):
         "context.html",
         {
             "request": request,
-            "title": entry["meta"]["name"],
+            "title": f"{entry['meta']['name']} (running)",
             "context": context,
             "screenshots": screenshots,
             "logs": recent,

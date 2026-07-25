@@ -1,5 +1,11 @@
 """The dashboard pages a human actually looks at."""
 
+import re
+
+
+def title_of(html: bytes) -> str:
+    return re.search(rb"<title>(.*?)</title>", html).group(1).decode()
+
 
 def test_root_redirects_to_summary(client):
     status, _ = client.get("/summary")
@@ -104,6 +110,51 @@ def test_mini_log_is_capped(client, ctx):
     # 20 preloaded entries plus the (hidden) placeholder. Counting the class
     # attribute avoids matching the same string inside the page's script.
     assert html.count(b'class="log-entry log-') <= 21
+
+
+def test_the_summary_title_counts_what_is_running(client):
+    first = client.create_context(name="counted-one")
+    second = client.create_context(name="counted-two")
+    try:
+        _, html = client.get("/summary")
+        count = int(re.search(r"Summary \((\d+)\)", title_of(html)).group(1))
+        # Compared against the page itself, so a context left over from another
+        # test changes both numbers rather than breaking this one.
+        assert count == html.count(b'id="ctx-') >= 2
+    finally:
+        client.delete(f"/api/contexts/{first['id']}")
+        client.delete(f"/api/contexts/{second['id']}")
+
+
+def test_titles_name_the_page_and_the_context(client, ctx):
+    assert title_of(client.get("/history")[1]) == "History — Clawsome"
+
+    _, html = client.get(f"/context/{ctx['id']}")
+    assert title_of(html) == "fixture-context (running) — Clawsome"
+
+    _, html = client.get(f"/logs/{ctx['id']}")
+    assert title_of(html) == "Logs — fixture-context — Clawsome"
+
+
+def test_a_stopped_context_says_so_in_the_title(client):
+    meta = client.create_context(name="finished")
+    client.delete(f"/api/contexts/{meta['id']}")
+    _, html = client.get(f"/context/{meta['id']}")
+    assert title_of(html) == "finished (stopped) — Clawsome"
+
+
+def test_the_favicon_is_served_and_linked(client):
+    status, png = client.get("/public/favicon.png")
+    assert status == 200
+    assert png[:8] == b"\x89PNG\r\n\x1a\n"
+
+    # Browsers ask for /favicon.ico whatever the page says.
+    status, body = client.get("/favicon.ico")
+    assert status == 200
+    assert body[:8] == b"\x89PNG\r\n\x1a\n"
+
+    _, html = client.get("/summary")
+    assert b'rel="icon"' in html
 
 
 def test_logs_page_renders_entries(client, ctx):

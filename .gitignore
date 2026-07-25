@@ -9,3 +9,4 @@ plans/
 *.png
 !clawsome.png
 !docs/screenshots/*.png
+!src/public/favicon.png
