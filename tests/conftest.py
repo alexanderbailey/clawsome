@@ -124,6 +124,12 @@ def _stop_server(proc: subprocess.Popen):
         proc.wait(timeout=10)
 
 
+@pytest.fixture
+def anyio_backend():
+    """Async tests (the MCP suite) run on asyncio only."""
+    return "asyncio"
+
+
 def eventually(fn, expected, timeout: float = 5.0, interval: float = 0.05):
     """Poll until fn() equals expected, then return it (or the last value seen).
 

@@ -29,7 +29,8 @@ jobs:
         run: uv python install
 
       - name: Install dependencies
-        run: uv sync --frozen
+        # --all-extras so the optional MCP server is covered too.
+        run: uv sync --frozen --all-extras
 
       - name: Cache Playwright browsers
         id: playwright-cache
