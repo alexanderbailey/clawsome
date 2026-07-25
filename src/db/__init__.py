@@ -83,7 +83,10 @@ def get_logs_by_context(context_id: str, limit: int = 200) -> list[dict]:
     rows = (
         get_db()
         .execute(
-            "SELECT * FROM logs WHERE context_id = ? ORDER BY created_at DESC LIMIT ?",
+            # By id, not created_at: timestamps are only second-granular, so
+            # entries logged in the same second tie and LIMIT would take an
+            # arbitrary slice — in practice the oldest rather than the newest.
+            "SELECT * FROM logs WHERE context_id = ? ORDER BY id DESC LIMIT ?",
             (context_id, limit),
         )
         .fetchall()

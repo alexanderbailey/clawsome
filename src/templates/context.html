@@ -52,19 +52,43 @@
 
   <div id="mini-log-status" class="conn-banner"></div>
   <div class="log-container" id="mini-logs">
-    <div class="log-entry log-info" style="color: var(--text-muted);">Waiting for log entries...</div>
+    {% for log in logs %}
+      <div class="log-entry log-{{ log.level }}">
+        <span class="log-time">{{ log.created_at }}</span>
+        [{{ log.level|upper }}] {{ log.message }}
+      </div>
+    {% endfor %}
+    <div id="mini-log-empty" class="log-entry log-info"
+         style="color: var(--text-muted); {% if logs %}display: none;{% endif %}">
+      No log entries yet.
+    </div>
   </div>
 
   <script>
     (function() {
       const container = document.getElementById('mini-logs');
       const status = document.getElementById('mini-log-status');
+      const empty = document.getElementById('mini-log-empty');
       const id = '{{ context.id }}';
+
+      // Preloaded entries can overflow the container; show the newest.
+      container.scrollTop = container.scrollHeight;
+
       liveUpdates('/sse/updates', ['log:new'], (type, data) => {
         if (data.contextId !== id) return;
+        if (empty) empty.style.display = 'none';
+        const level = data.level || 'info';
         const div = document.createElement('div');
-        div.className = 'log-entry log-' + (data.level || 'info');
-        div.textContent = '[' + (data.level || 'info').toUpperCase() + '] ' + data.message;
+        div.className = 'log-entry log-' + level;
+        const time = document.createElement('span');
+        time.className = 'log-time';
+        // Server-rendered entries carry their real timestamp; live ones are
+        // arriving now, so this matches to within the round trip.
+        time.textContent = new Date().toISOString().replace('T', ' ').split('.')[0];
+        div.appendChild(time);
+        // Log text is untrusted; append it as text rather than markup.
+        div.appendChild(document.createTextNode(
+          ' [' + level.toUpperCase() + '] ' + data.message));
         container.appendChild(div);
         container.scrollTop = container.scrollHeight;
       }, (state) => status.setAttribute('data-conn', state));

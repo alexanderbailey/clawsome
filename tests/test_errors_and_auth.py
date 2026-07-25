@@ -54,6 +54,21 @@ def test_logs_can_be_appended_and_read_back(client, ctx):
                for e in logs)
 
 
+def test_logs_are_returned_newest_first_within_the_same_second(client, ctx):
+    """Timestamps are second-granular, so ordering must not rely on them.
+
+    Ordering by created_at ties for entries logged in the same second, and a
+    LIMIT then takes an arbitrary slice — in practice the oldest ones.
+    """
+    for i in range(25):
+        client.post(f"/api/contexts/{ctx['id']}/logs", {"message": f"line-{i}"})
+
+    _, logs = client.get(f"/api/contexts/{ctx['id']}/logs")
+    messages = [e["message"] for e in logs if e["message"].startswith("line-")]
+    assert messages[0] == "line-24", messages[:3]
+    assert messages[-1] == "line-0", messages[-3:]
+
+
 def test_screenshots_are_saved_and_listed(client, ctx, site):
     client.goto(ctx["id"], f"{site}/index.html")
     status, png = client.get(f"/api/contexts/{ctx['id']}/screenshot")
