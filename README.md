@@ -17,6 +17,7 @@
 
 <p align="center">
   <a href="#screenshots">Screenshots</a> &middot;
+  <a href="#how-it-compares">How It Compares</a> &middot;
   <a href="#quick-start">Quick Start</a> &middot;
   <a href="#rest-api">API Reference</a> &middot;
   <a href="#example-setups">Example Setups</a> &middot;
@@ -62,6 +63,23 @@ Runs anywhere Python and Chromium can. No particular OS or hardware assumed.
 </p>
 
 <p align="center"><em>Live in action: thumbnails refresh in real time as a context navigates, no page reload needed.</em></p>
+
+## How It Compares
+
+Clawsome is a small self-hosted service built around one idea: watching browser work happen. Several contexts at once as live tiles, each with a log stream the caller writes, and a screenshot history that outlives the run. It is not browser infrastructure — there is no queueing, pooling, proxy rotation or CAPTCHA handling, and it runs as a single process with a SQLite file. If you need those things, the tools below do them properly.
+
+| Tool | What it does | Where Clawsome differs |
+| --- | --- | --- |
+| [Playwright MCP](https://playwright.dev/docs/getting-started-mcp) | Microsoft's MCP server: gives an agent a real browser driven from the accessibility tree, so no vision model is needed | Plain REST from any HTTP client, with MCP as one optional front end rather than the only door in; plus the dashboard, log stream and saved history |
+| [Browserless](https://www.browserless.io/) | Production browser infrastructure — concurrency, queueing, a debug viewer, session replay. Self-hostable Docker image under SSPL-1.0 or a commercial licence | MIT, and much smaller: aimed at watching a handful of tasks closely rather than running many reliably |
+| [Steel](https://steel.dev/) | Apache-2.0 browser API, self-hostable or hosted, with a live viewer, MP4 replay and managed stealth/CAPTCHA | Narrower scope. Many contexts on one page rather than one session at a time, and logs written by whatever is driving |
+| [Browserbase](https://www.browserbase.com/) | Hosted cloud browsers with a polished live view and session replay | Self-hosted and MIT; profiles and screenshots stay on your own disk |
+| [Playwright UI mode / trace viewer](https://playwright.dev/docs/test-ui-mode) | Debugging your own tests — interactively in UI mode, or after the fact from a trace | A remote live view: watch a suite running on CI, a server or a Pi from any browser, next to non-test automation on the same dashboard |
+
+Two things follow from that shape:
+
+- **Your existing Playwright suite shows up live** through `reporter/fixture.js`, without moving the browser off the machine already running the tests. The tests run where they always ran and push frames in, so this works for a suite on CI or a colleague's laptop.
+- **The log stream is written by the caller**, so an agent narrates what it is about to do and you read that next to the screenshot of it happening — rather than reconstructing intent from a recording afterwards.
 
 ## Quick Start
 
