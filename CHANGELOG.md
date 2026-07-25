@@ -9,6 +9,12 @@ will be called out here.
 
 ## [Unreleased]
 
+### Added
+
+- Container images published to `ghcr.io/alexanderbailey/clawsome` on every push
+  to `main` and on version tags, so Docker no longer requires cloning and
+  building. `latest` moves only on tagged releases.
+
 ## [0.1.0] — 2026-07-25
 
 First tagged release. Clawsome drives headless Chromium over a REST API and
