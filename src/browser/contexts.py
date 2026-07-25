@@ -165,6 +165,20 @@ DEFAULT_VIEWPORT = {"width": 1280, "height": 720}
 CONTEXT_TTL = float(os.environ.get("CLAWSOME_CONTEXT_TTL", "1800"))
 REAPER_INTERVAL = 30.0
 
+# How often the server captures each live context on its own, so the history is
+# complete whether or not anyone has the dashboard open. 0 disables server-side
+# capture entirely, including the per-action frames.
+CAPTURE_INTERVAL = float(os.environ.get("CLAWSOME_CAPTURE_INTERVAL", "3.0"))
+
+# One capture at a time per context: the periodic loop, a dashboard socket, the
+# GET endpoint and the per-action frames can all want a screenshot at once, and
+# they share a single Playwright page.
+_capture_locks: dict[str, asyncio.Lock] = {}
+
+# Strong references to in-flight per-action captures, so they are not collected
+# mid-flight (asyncio only holds a weak reference to a running task).
+_pending_captures: set[asyncio.Task] = set()
+
 
 def _now_iso() -> str:
     return datetime.now(tz=timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
@@ -340,7 +354,11 @@ async def navigate_to(
     ctx_id: str, url: str, *, timeout: int = 30000, wait_until: str = "domcontentloaded"
 ) -> dict:
     page = _require_page(ctx_id)
-    await page.goto(url, wait_until=wait_until, timeout=timeout)
+    try:
+        await page.goto(url, wait_until=wait_until, timeout=timeout)
+    finally:
+        # Also on failure: the frame showing where it got stuck is the useful one.
+        _schedule_capture(ctx_id)
     return {"url": page.url}
 
 
@@ -355,6 +373,39 @@ def upload_screenshot(ctx_id: str, png: bytes):
     _save_screenshot(ctx_id, png, force=True)
 
 
+async def capture(ctx_id: str, *, force: bool = False) -> bytes | None:
+    """Screenshot a live browser context and add the frame to its history.
+
+    Returns None when there is nothing to capture — an external context, one
+    that has gone away, or a page that is mid-navigation. Callers that run on a
+    timer should treat that as "try again next time" rather than an error.
+    """
+    entry = _alive.get(ctx_id)
+    if not entry or entry["meta"].get("external"):
+        return None
+
+    lock = _capture_locks.setdefault(ctx_id, asyncio.Lock())
+    async with lock:
+        # The context can be destroyed while we wait for the lock.
+        if ctx_id not in _alive:
+            return None
+        try:
+            png = await _require_page(ctx_id).screenshot(type="png")
+        except Exception:
+            return None
+        _save_screenshot(ctx_id, png, force=force)
+        return png
+
+
+def _schedule_capture(ctx_id: str):
+    """Capture a frame for an action without making the caller wait for it."""
+    if CAPTURE_INTERVAL <= 0:
+        return
+    task = asyncio.create_task(capture(ctx_id, force=True))
+    _pending_captures.add(task)
+    task.add_done_callback(_pending_captures.discard)
+
+
 async def take_screenshot(ctx_id: str) -> bytes:
     entry = _alive.get(ctx_id)
     if not entry:
@@ -363,12 +414,45 @@ async def take_screenshot(ctx_id: str) -> bytes:
         if ctx_id in _screenshots:
             return _screenshots[ctx_id]
         raise ValueError(f"No screenshot available for context {ctx_id}")
-    png = await _require_page(ctx_id).screenshot(type="png")
-    _save_screenshot(ctx_id, png)
+    png = await capture(ctx_id)
+    if png is None:
+        raise ValueError(f"No screenshot available for context {ctx_id}")
     return png
 
 
+async def run_capture_loop():
+    """Periodically capture every live browser context. Runs for the app's life."""
+    if CAPTURE_INTERVAL <= 0:
+        return
+    while True:
+        await asyncio.sleep(CAPTURE_INTERVAL)
+        for ctx_id in list(_alive):
+            try:
+                await capture(ctx_id)
+            except Exception:
+                pass
+
+
 async def exec_action(
+    ctx_id: str,
+    *,
+    action: str,
+    selector: str | None = None,
+    value: str | None = None,
+    script: str | None = None,
+    timeout: int | None = None,
+) -> dict:
+    try:
+        return await _perform_action(
+            ctx_id, action=action, selector=selector, value=value,
+            script=script, timeout=timeout,
+        )
+    finally:
+        # One frame per step, whether the step worked or not.
+        _schedule_capture(ctx_id)
+
+
+async def _perform_action(
     ctx_id: str,
     *,
     action: str,
@@ -500,6 +584,7 @@ async def destroy_context(ctx_id: str):
     _screenshots.pop(ctx_id, None)
     _last_save.pop(ctx_id, None)
     _last_hash.pop(ctx_id, None)
+    _capture_locks.pop(ctx_id, None)
 
     update_context_status(ctx_id, "stopped")
 
