@@ -66,7 +66,6 @@
     var src = null;
     var lastMessage = Date.now();
     var everConnected = false;
-    var stopped = false;
 
     function handle(type, raw) {
       lastMessage = Date.now();
@@ -79,7 +78,6 @@
     }
 
     function open() {
-      if (stopped) return;
       src = new EventSource(url);
       lastMessage = Date.now();
 
@@ -102,23 +100,18 @@
 
     function reopen() {
       if (onState) onState('offline');
-      if (src) {
-        src.onerror = null;
-        src.close();
-      }
+      if (src) src.close();
       open();
     }
 
     open();
 
     var watchdog = setInterval(function () {
-      if (stopped) return;
       if (Date.now() - lastMessage > STALE_MS) reopen();
     }, 5000);
 
     return {
       close: function () {
-        stopped = true;
         clearInterval(watchdog);
         if (src) src.close();
       },

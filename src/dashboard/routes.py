@@ -13,19 +13,18 @@ router = APIRouter()
 
 HISTORY_PAGE_SIZE = 50
 
-# Where a detail page's "back" link should point, keyed by the ?from= param.
-BACK_TARGETS = {
-    "history": ("/history", "history"),
-    "summary": ("/summary", "summary"),
-}
+# Pages a detail view can be reached from, named by the ?from= param. Each is
+# its own path and its own label, so one name is enough.
+BACK_TARGETS = ("summary", "history")
 
 
 def _back(from_: str | None) -> dict:
-    url, label = BACK_TARGETS.get(from_ or "", BACK_TARGETS["summary"])
+    """Template context for a detail page's back link, given where we came from."""
+    target = from_ if from_ in BACK_TARGETS else "summary"
     return {
-        "back_url": url,
-        "back_label": label,
-        "from_query": f"?from={from_}" if from_ in BACK_TARGETS else "",
+        "back_url": f"/{target}",
+        "back_label": target,
+        "from_query": f"?from={target}",
     }
 
 
@@ -80,9 +79,7 @@ async def context_view(request: Request, ctx_id: str):
                     "title": db_ctx["name"],
                     "context": context,
                     "screenshots": screenshots,
-                    # A stopped context is only reachable from history in practice,
-                    # so default its back link there.
-                    **_back(from_ or "history"),
+                    **_back(from_),
                 },
             )
         return HTMLResponse("Context not found", status_code=404)
@@ -113,7 +110,7 @@ async def logs_view(request: Request, ctx_id: str):
             "context_id": ctx_id,
             "context_name": name,
             "logs": list(reversed(logs)),
-            **_back(request.query_params.get("from") or (None if entry else "history")),
+            **_back(request.query_params.get("from")),
         },
     )
 
