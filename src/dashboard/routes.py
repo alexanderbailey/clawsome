@@ -13,6 +13,10 @@ router = APIRouter()
 
 HISTORY_PAGE_SIZE = 50
 
+# How much history to render into the context page's mini-log. The full log
+# lives on /logs/:id.
+MINI_LOG_LIMIT = 20
+
 # Pages a detail view can be reached from, named by the ?from= param. Each is
 # its own path and its own label, so one name is enough.
 BACK_TARGETS = ("summary", "history")
@@ -84,6 +88,8 @@ async def context_view(request: Request, ctx_id: str):
             )
         return HTMLResponse("Context not found", status_code=404)
     context = {**entry["meta"], "alive": True}
+    # Oldest first, so the mini-log reads in the same direction it grows.
+    recent = list(reversed(get_logs_by_context(ctx_id, limit=MINI_LOG_LIMIT)))
     return templates.TemplateResponse(
         "context.html",
         {
@@ -91,6 +97,7 @@ async def context_view(request: Request, ctx_id: str):
             "title": entry["meta"]["name"],
             "context": context,
             "screenshots": screenshots,
+            "logs": recent,
             **_back(from_),
         },
     )

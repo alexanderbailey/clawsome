@@ -71,6 +71,41 @@ def test_an_unknown_origin_falls_back_to_summary(client, ctx):
     assert b'href="/summary"' in html
 
 
+def test_mini_log_preloads_history_from_before_the_page_opened(client, ctx):
+    """Opening a context page mid-task should show what already happened."""
+    for i in range(3):
+        client.post(f"/api/contexts/{ctx['id']}/logs",
+                    {"message": f"step {i} already done"})
+
+    _, html = client.get(f"/context/{ctx['id']}")
+    for i in range(3):
+        assert f"step {i} already done".encode() in html
+    # The placeholder is hidden once there is history to show.
+    assert b"No log entries yet" in html
+    assert b"display: none" in html
+
+
+def test_mini_log_shows_a_placeholder_when_there_is_no_history(client):
+    meta = client.create_context(name="quiet")
+    try:
+        _, html = client.get(f"/context/{meta['id']}")
+        assert b"No log entries yet" in html
+    finally:
+        client.delete(f"/api/contexts/{meta['id']}")
+
+
+def test_mini_log_is_capped(client, ctx):
+    """Only recent entries are preloaded; the full log lives on /logs/:id."""
+    for i in range(25):
+        client.post(f"/api/contexts/{ctx['id']}/logs", {"message": f"entry-{i}"})
+    _, html = client.get(f"/context/{ctx['id']}")
+    assert b"entry-24" in html          # newest is present
+    assert b"entry-0 " not in html      # oldest fell outside the window
+    # 20 preloaded entries plus the (hidden) placeholder. Counting the class
+    # attribute avoids matching the same string inside the page's script.
+    assert html.count(b'class="log-entry log-') <= 21
+
+
 def test_logs_page_renders_entries(client, ctx):
     client.post(f"/api/contexts/{ctx['id']}/logs", {"message": "a logged line"})
     status, html = client.get(f"/logs/{ctx['id']}")
