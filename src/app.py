@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
+from .paths import DATA_DIR, DB_PATH
 from .db import init_db
 from .browser.manager import launch_browser, close_browser
 from .browser.contexts import destroy_all_contexts, run_reaper
@@ -15,7 +16,6 @@ from .dashboard.routes import router as dashboard_router
 from .dashboard.sse import router as sse_router
 from .dashboard.ws import router as ws_router
 
-ROOT = Path(__file__).parent.parent
 SRC = Path(__file__).parent
 
 PORT = int(os.environ.get("PORT", "3000"))
@@ -24,8 +24,8 @@ HOST = os.environ.get("HOST", "0.0.0.0")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    (ROOT / "data").mkdir(exist_ok=True)
-    init_db(str(ROOT / "data" / "clawsome.db"))
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+    init_db(str(DB_PATH))
     await launch_browser()
     reaper = asyncio.create_task(
         run_reaper(lambda ctx_id: broadcast(event="context:destroyed", data={"id": ctx_id}))

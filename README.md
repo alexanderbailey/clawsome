@@ -5,6 +5,7 @@
 <h3 align="center">Live browser automation dashboard powered by Playwright</h3>
 
 <p align="center">
+  <a href="https://github.com/alexanderbailey/clawsome/actions/workflows/ci.yml"><img src="https://github.com/alexanderbailey/clawsome/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.12+-3776ab?logo=python&logoColor=white" alt="Python 3.12+"></a>
   <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-0.135+-009688?logo=fastapi&logoColor=white" alt="FastAPI"></a>
   <a href="https://playwright.dev/python/"><img src="https://img.shields.io/badge/Playwright-1.58+-2ead33?logo=playwright&logoColor=white" alt="Playwright"></a>
@@ -206,7 +207,7 @@ Context metadata also carries `created_at` and `last_activity`. A context with n
 
 All actions accept an optional `timeout` in milliseconds.
 
-If a click opens a new tab (`target="_blank"` or `window.open`), the context follows it automatically and subsequent actions apply to the new tab. If that tab is closed, the context falls back to another open page.
+If a click opens a new tab (`target="_blank"` or `window.open`), the context follows it automatically and subsequent actions apply to the new tab. If that tab is closed, the context falls back to another open page. The browser reports a new tab a moment after the click returns (~20ms), so a request issued immediately after the click may still see the old page; the one after that will not.
 
 </details>
 
@@ -287,6 +288,18 @@ curl -s http://localhost:3000/api/contexts \
 ```
 
 The token guards the API only. The dashboard pages, the SSE stream (`/sse/updates`), the screenshot WebSocket (`/ws/screenshots/:id`), and `/health` remain open, so keep the dashboard on a trusted network. Splitting read-only dashboard access from API control is tracked separately.
+
+## Tests
+
+The suite is end-to-end: it starts a real Clawsome server, which drives real headless Chromium, against a static site served from `tests/pages/`. Nothing is mocked and nothing reaches the public internet, so a passing run means the whole stack works together.
+
+```bash
+uv sync
+uv run playwright install chromium
+uv run pytest
+```
+
+Each test server gets its own `CLAWSOME_DATA_DIR`, so runs never touch the database or screenshots in your checkout. The same suite runs on every push and pull request via GitHub Actions (`.github/workflows/ci.yml`).
 
 ## Playwright Test Integration
 
