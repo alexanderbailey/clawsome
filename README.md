@@ -12,7 +12,7 @@
   <a href="https://playwright.dev/python/"><img src="https://img.shields.io/badge/Playwright-1.58+-2ead33?logo=playwright&logoColor=white" alt="Playwright"></a>
   <a href="https://github.com/alexanderbailey/clawsome/blob/main/LICENSE"><img src="https://img.shields.io/github/license/alexanderbailey/clawsome" alt="License"></a>
   <a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/badge/uv-package%20manager-de5fe9?logo=uv&logoColor=white" alt="uv"></a>
-  <a href="https://hub.docker.com/"><img src="https://img.shields.io/badge/docker-ready-2496ed?logo=docker&logoColor=white" alt="Docker"></a>
+  <a href="https://github.com/alexanderbailey/clawsome/pkgs/container/clawsome"><img src="https://img.shields.io/badge/ghcr.io-clawsome-2496ed?logo=docker&logoColor=white" alt="Container image"></a>
 </p>
 
 <p align="center">
@@ -102,6 +102,37 @@ curl http://localhost:3000/health
 Open [http://localhost:3000/summary](http://localhost:3000/summary) for the live dashboard.
 
 ## Docker
+
+### Run the published image
+
+```bash
+docker run -d --name clawsome \
+  -p 3000:3000 \
+  -v "$(pwd)/data:/app/data" \
+  -v "$(pwd)/profiles:/app/profiles" \
+  ghcr.io/alexanderbailey/clawsome:latest
+```
+
+The dashboard is then at [http://localhost:3000/summary](http://localhost:3000/summary). Pass configuration with `-e`, or reuse the same file compose reads:
+
+```bash
+docker run -d --name clawsome -p 3000:3000 --env-file .env \
+  -v "$(pwd)/data:/app/data" -v "$(pwd)/profiles:/app/profiles" \
+  ghcr.io/alexanderbailey/clawsome:latest
+```
+
+If you set `PORT` to something other than `3000`, publish that port instead.
+
+| Tag | What it is |
+| --- | --- |
+| `latest` | the most recent tagged release |
+| `0.1.0`, `0.1` | a release, pinned at the precision you want |
+| `main` | built from every push to `main` — unreleased, opt-in |
+| `sha-abc1234` | one specific commit, for rollbacks and bisecting |
+
+Images are amd64. On ARM — a Raspberry Pi, an Apple Silicon machine — run from source for now; see [Quick Start](#quick-start).
+
+### Build from source
 
 ```bash
 cp .env.example .env
