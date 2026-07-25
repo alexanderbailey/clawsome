@@ -5,6 +5,7 @@
 <h3 align="center">Live browser automation dashboard powered by Playwright</h3>
 
 <p align="center">
+  <a href="https://github.com/alexanderbailey/clawsome/releases/latest"><img src="https://img.shields.io/github/v/release/alexanderbailey/clawsome?logo=github&logoColor=white" alt="Release"></a>
   <a href="https://github.com/alexanderbailey/clawsome/actions/workflows/ci.yml"><img src="https://github.com/alexanderbailey/clawsome/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.12+-3776ab?logo=python&logoColor=white" alt="Python 3.12+"></a>
   <a href="https://fastapi.tiangolo.com/"><img src="https://img.shields.io/badge/FastAPI-0.135+-009688?logo=fastapi&logoColor=white" alt="FastAPI"></a>
@@ -421,6 +422,10 @@ This is the same pair of variables `reporter/fixture.js` uses.
 Once installed, the reliable way to invoke it is by name: say "use clawsome to check the checkout page", or type `/clawsome` in Claude Code. Agents can also pick the skill up on their own when a request clearly needs a live browser, but that matching is best effort, so name it when it matters.
 
 Neither integration is a requirement. Any agent can be pointed at the [REST API](#rest-api) reference above and drive Clawsome directly.
+
+## Releases
+
+Tagged releases are on the [releases page](https://github.com/alexanderbailey/clawsome/releases), and what changed in each one is in [CHANGELOG.md](CHANGELOG.md). Versions follow [semver](https://semver.org/); before `1.0.0` the API may still change between minor versions, and anything breaking is called out in the changelog.
 
 ## License
 
