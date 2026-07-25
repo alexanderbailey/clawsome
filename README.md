@@ -364,7 +364,32 @@ The API is generic, but here's what you can do with it:
 
 ## AI Agent Integration
 
-Clawsome has no dependency on any particular agent: it's a REST API, and anything that can make an HTTP request can drive it. For agents that support skills, `skill/` contains a ready-made one that teaches the full workflow (create a context, navigate, act, log progress, clean up). The same file works for OpenClaw, Claude Code, and anything else that reads the SKILL.md format:
+Clawsome has no dependency on any particular agent: it's a REST API, and anything that can make an HTTP request can drive it. There are two ready-made integrations — an MCP server and a skill — and neither is required.
+
+### MCP server
+
+For agents that speak MCP, `src/mcp_server.py` exposes the API as tools: `create_context`, `goto`, `snapshot`, `act`, `screenshot`, `log`, `list_contexts` and `destroy_context`. Screenshots come back as images the agent can actually look at, rather than a file path.
+
+It's a thin client over the REST API, so **start Clawsome first**, then register the server:
+
+```bash
+claude mcp add clawsome -- uv run --directory /path/to/clawsome --extra mcp python -m src.mcp_server
+```
+
+For a non-default address or a token-protected instance, pass them through:
+
+```bash
+claude mcp add clawsome \
+  --env CLAWSOME_URL=http://192.168.1.50:3000 \
+  --env CLAWSOME_TOKEN=your-token \
+  -- uv run --directory /path/to/clawsome --extra mcp python -m src.mcp_server
+```
+
+The MCP dependency is optional and not installed by default — `--extra mcp` (or `uv sync --extra mcp`) pulls it in.
+
+### Skill
+
+For agents that support skills, `skill/` contains a ready-made one that teaches the full workflow (create a context, navigate, act, log progress, clean up). It needs only `curl`, so it's the dependency-free option. The same file works for OpenClaw, Claude Code, and anything else that reads the SKILL.md format:
 
 ```bash
 # OpenClaw
@@ -388,7 +413,7 @@ This is the same pair of variables `reporter/fixture.js` uses.
 
 Once installed, the reliable way to invoke it is by name: say "use clawsome to check the checkout page", or type `/clawsome` in Claude Code. Agents can also pick the skill up on their own when a request clearly needs a live browser, but that matching is best effort, so name it when it matters.
 
-The skill is a convenience, not a requirement. Any agent can be pointed at the [REST API](#rest-api) reference above and drive Clawsome directly.
+Neither integration is a requirement. Any agent can be pointed at the [REST API](#rest-api) reference above and drive Clawsome directly.
 
 ## License
 
