@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
     tags: ["v*.*.*"]
+  # Dispatchable against a tag, which is how the release workflow builds the
+  # image. A tag pushed by a workflow using GITHUB_TOKEN does not raise a push
+  # event — GitHub suppresses those to prevent recursion — so the release
+  # cannot rely on the trigger above.
+  workflow_dispatch:
 
 concurrency:
   # Not cancel-in-progress: a half-finished push leaves tags pointing at
