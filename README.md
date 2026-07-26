@@ -2,7 +2,7 @@
   <img src="clawsome.png" alt="Clawsome" width="280">
 </p>
 
-<h3 align="center">Live browser automation dashboard powered by Playwright</h3>
+<h3 align="center">Watch your tests and AI agents drive a real browser</h3>
 
 <p align="center">
   <a href="https://github.com/alexanderbailey/clawsome/releases/latest"><img src="https://img.shields.io/github/v/release/alexanderbailey/clawsome?logo=github&logoColor=white" alt="Release"></a>
@@ -17,6 +17,7 @@
 
 <p align="center">
   <a href="#screenshots">Screenshots</a> &middot;
+  <a href="#how-it-compares">How It Compares</a> &middot;
   <a href="#quick-start">Quick Start</a> &middot;
   <a href="#rest-api">API Reference</a> &middot;
   <a href="#example-setups">Example Setups</a> &middot;
@@ -26,12 +27,14 @@
 
 ---
 
-Clawsome is a browser automation service you control over a REST API, from any AI agent that can make HTTP requests (OpenClaw, Claude Code, a custom script) or from your own tooling directly. It runs headless Chromium, exposes a REST API for browser control, and serves a real-time dashboard with live screenshots via WebSocket and SSE.
+Clawsome lets you watch a browser work. Your test suite or an AI agent drives it, and every browser context shows up on a live dashboard — streaming screenshots, a log of what the driver says it's doing, and a screenshot history that outlives the run.
 
-**Two main use cases:**
+It's one self-hosted service: headless Chromium behind a REST API, with the dashboard updating over WebSocket and SSE. Profiles, screenshots and logs stay on your own disk.
 
-- **AI-driven browser tasks.** An agent creates a context, drives it through the API, and you watch the task happen live on the dashboard. OpenClaw and Claude Code are two examples below; anything that can make an HTTP request works the same way.
-- **Playwright test monitoring.** Run your test suite normally and watch every test live on the dashboard with real-time screenshots and logs.
+**Two ways to use it:**
+
+- **Watch an agent work.** An agent creates a context, drives it over plain HTTP, and narrates what it's doing as it goes, so you read the intent next to the screenshot of it happening. OpenClaw and Claude Code are two examples below; anything that can make an HTTP request works the same way.
+- **Watch your test suite run.** Add the Playwright fixture and every test appears live, with its own screenshots and logs. The browser stays in your own test process, so a suite pointed at `localhost:3000`, a staging box behind a VPN, or an internal tool keeps working exactly as it does now — nothing moves to someone else's infrastructure.
 
 It's built for driving things you're responsible for — your local dev server, a staging environment, an internal tool, or an account you hold — where the value is watching the work happen rather than trusting a summary of it. Whatever you point it at, it's on you to have the right to automate it, and to respect that site's terms.
 
@@ -62,6 +65,33 @@ Runs anywhere Python and Chromium can. No particular OS or hardware assumed.
 </p>
 
 <p align="center"><em>Live in action: thumbnails refresh in real time as a context navigates, no page reload needed.</em></p>
+
+## How It Compares
+
+Clawsome is a small self-hosted service built around one idea: watching browser work happen. Several contexts at once as live tiles, each with a log stream the caller writes, and a screenshot history that outlives the run. It is not browser infrastructure — there is no queueing, pooling, proxy rotation or CAPTCHA handling, and it runs as a single process with a SQLite file. If you need those things, the tools below do them properly.
+
+| Tool | What it does | Where Clawsome differs |
+| --- | --- | --- |
+| [Playwright MCP](https://playwright.dev/docs/getting-started-mcp) | Microsoft's MCP server: gives an agent a real browser driven from the accessibility tree, so no vision model is needed | Plain REST from any HTTP client, with MCP as one optional front end rather than the only door in; plus the dashboard, log stream and saved history |
+| [Browserless](https://www.browserless.io/) | Production browser infrastructure — concurrency, queueing, a debug viewer, session replay. Self-hostable Docker image under SSPL-1.0 or a commercial licence | MIT, and much smaller: aimed at watching a handful of tasks closely rather than running many reliably |
+| [Steel](https://steel.dev/) | Apache-2.0 browser API, self-hostable or hosted, with a live viewer, MP4 replay and managed stealth/CAPTCHA | Narrower scope. Many contexts on one page rather than one session at a time, and logs written by whatever is driving |
+| [Browserbase](https://www.browserbase.com/) | Hosted cloud browsers with a polished live view and session replay | Self-hosted and MIT; profiles and screenshots stay on your own disk |
+| [Playwright UI mode / trace viewer](https://playwright.dev/docs/test-ui-mode) | Debugging your own tests — interactively in UI mode, or after the fact from a trace | A remote live view: watch a suite running on CI, a server or a Pi from any browser, next to non-test automation on the same dashboard |
+
+Two things follow from that shape:
+
+- **Your existing Playwright suite shows up live** through `reporter/fixture.js`, without moving the browser off the machine already running the tests. That matters more than it sounds: a cloud browser can't reach your `localhost` dev server, your VPN-gated staging box or an internal tool without tunnelling or being self-hosted inside your network. Here the tests run where they always ran and push frames in.
+- **The log stream is written by the caller**, so an agent narrates what it is about to do and you read that next to the screenshot of it happening — rather than reconstructing intent from a recording afterwards.
+
+### When not to use it
+
+Reach for something else if you need:
+
+- **Scale** — many browsers at once, with queueing and pooling. Clawsome is a single process aimed at watching a handful of things closely.
+- **Evasion** — proxy rotation, fingerprint management, CAPTCHA solving. There is no infrastructure for any of it here.
+- **A hosted service** — Clawsome is something you run.
+- **A high-fidelity or interactive view** — the live view is a frame per action plus a periodic capture, and it is read-only. It is not a video stream and you cannot click into it.
+- **Post-hoc test debugging** — for "why did this fail last Tuesday", Playwright's trace viewer beats a screenshot history, and the two work fine side by side.
 
 ## Quick Start
 
