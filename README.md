@@ -2,7 +2,7 @@
   <img src="clawsome.png" alt="Clawsome" width="280">
 </p>
 
-<h3 align="center">Watch your tests and AI agents drive a browser, live</h3>
+<h3 align="center">Watch your tests and AI agents drive a real browser</h3>
 
 <p align="center">
   <a href="https://github.com/alexanderbailey/clawsome/releases/latest"><img src="https://img.shields.io/github/v/release/alexanderbailey/clawsome?logo=github&logoColor=white" alt="Release"></a>
