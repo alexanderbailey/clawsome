@@ -2,7 +2,7 @@
   <img src="clawsome.png" alt="Clawsome" width="280">
 </p>
 
-<h3 align="center">Live browser automation dashboard powered by Playwright</h3>
+<h3 align="center">Watch your tests and AI agents drive a browser, live</h3>
 
 <p align="center">
   <a href="https://github.com/alexanderbailey/clawsome/releases/latest"><img src="https://img.shields.io/github/v/release/alexanderbailey/clawsome?logo=github&logoColor=white" alt="Release"></a>
@@ -27,12 +27,14 @@
 
 ---
 
-Clawsome is a browser automation service you control over a REST API, from any AI agent that can make HTTP requests (OpenClaw, Claude Code, a custom script) or from your own tooling directly. It runs headless Chromium, exposes a REST API for browser control, and serves a real-time dashboard with live screenshots via WebSocket and SSE.
+Clawsome lets you watch a browser work. Your test suite or an AI agent drives it, and every browser context shows up on a live dashboard — streaming screenshots, a log of what the driver says it's doing, and a screenshot history that outlives the run.
 
-**Two main use cases:**
+It's one self-hosted service: headless Chromium behind a REST API, with the dashboard updating over WebSocket and SSE. Profiles, screenshots and logs stay on your own disk.
 
-- **AI-driven browser tasks.** An agent creates a context, drives it through the API, and you watch the task happen live on the dashboard. OpenClaw and Claude Code are two examples below; anything that can make an HTTP request works the same way.
-- **Playwright test monitoring.** Run your test suite normally and watch every test live on the dashboard with real-time screenshots and logs.
+**Two ways to use it:**
+
+- **Watch an agent work.** An agent creates a context, drives it over plain HTTP, and narrates what it's doing as it goes, so you read the intent next to the screenshot of it happening. OpenClaw and Claude Code are two examples below; anything that can make an HTTP request works the same way.
+- **Watch your test suite run.** Add the Playwright fixture and every test appears live, with its own screenshots and logs. The browser stays in your own test process, so a suite pointed at `localhost:3000`, a staging box behind a VPN, or an internal tool keeps working exactly as it does now — nothing moves to someone else's infrastructure.
 
 It's built for driving things you're responsible for — your local dev server, a staging environment, an internal tool, or an account you hold — where the value is watching the work happen rather than trusting a summary of it. Whatever you point it at, it's on you to have the right to automate it, and to respect that site's terms.
 
@@ -78,8 +80,18 @@ Clawsome is a small self-hosted service built around one idea: watching browser 
 
 Two things follow from that shape:
 
-- **Your existing Playwright suite shows up live** through `reporter/fixture.js`, without moving the browser off the machine already running the tests. The tests run where they always ran and push frames in, so this works for a suite on CI or a colleague's laptop.
+- **Your existing Playwright suite shows up live** through `reporter/fixture.js`, without moving the browser off the machine already running the tests. That matters more than it sounds: a cloud browser can't reach your `localhost` dev server, your VPN-gated staging box or an internal tool without tunnelling or being self-hosted inside your network. Here the tests run where they always ran and push frames in.
 - **The log stream is written by the caller**, so an agent narrates what it is about to do and you read that next to the screenshot of it happening — rather than reconstructing intent from a recording afterwards.
+
+### When not to use it
+
+Reach for something else if you need:
+
+- **Scale** — many browsers at once, with queueing and pooling. Clawsome is a single process aimed at watching a handful of things closely.
+- **Evasion** — proxy rotation, fingerprint management, CAPTCHA solving. There is no infrastructure for any of it here.
+- **A hosted service** — Clawsome is something you run.
+- **A high-fidelity or interactive view** — the live view is a frame per action plus a periodic capture, and it is read-only. It is not a video stream and you cannot click into it.
+- **Post-hoc test debugging** — for "why did this fail last Tuesday", Playwright's trace viewer beats a screenshot history, and the two work fine side by side.
 
 ## Quick Start
 
