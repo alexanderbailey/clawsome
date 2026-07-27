@@ -76,8 +76,10 @@ jobs:
           TAG: ${{ steps.check.outputs.tag }}
         run: |
           set -euo pipefail
-          git config user.name "Alex Bailey"
-          git config user.email "12633773+alexanderbailey@users.noreply.github.com"
+          # Tagged as the bot, not as a person: CI made this tag, and the run
+          # that produced it is the audit trail worth following.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git tag -a "$TAG" -m "$TAG"
           git push origin "$TAG"
 
