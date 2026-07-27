@@ -1,0 +1,100 @@
+name: Release
+
+# Cut a release without needing a laptop: tags the current commit, publishes a
+# GitHub release using the changelog entry as its notes, and builds the image.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to release, without the leading v (e.g. 0.1.1)"
+        required: true
+        type: string
+
+jobs:
+  release:
+    name: Tag and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write   # create the tag and the release
+      actions: write    # dispatch the image build
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0   # tags, so an existing one can be detected
+
+      - name: Check the release is ready
+        id: check
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::version must look like 1.2.3, got '$VERSION'"
+            exit 1
+          fi
+          tag="v$VERSION"
+
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "::error::$tag already exists. Releases are not re-cut; bump the version."
+            exit 1
+          fi
+
+          # pyproject is the version people see in the package metadata, so it
+          # has to agree rather than being quietly left behind.
+          declared=$(grep -m1 '^version = ' pyproject.toml | cut -d'"' -f2)
+          if [ "$declared" != "$VERSION" ]; then
+            echo "::error::pyproject.toml says $declared, not $VERSION. Update it first."
+            exit 1
+          fi
+
+          # The notes are the changelog section for this version. Requiring one
+          # means the changelog cannot drift behind the releases.
+          pattern=$(printf '%s' "$VERSION" | sed 's/\./\\./g')
+          awk -v pat="^## \\[$pattern\\]" '
+            $0 ~ pat { found = 1; next }
+            found && /^## / { exit }
+            found { print }
+          ' CHANGELOG.md > notes.md
+
+          if [ ! -s notes.md ]; then
+            echo "::error::CHANGELOG.md has no '## [$VERSION]' section. Add one first."
+            exit 1
+          fi
+
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Releasing \`$tag\` from \`$(git rev-parse --short HEAD)\`"
+            echo
+            cat notes.md
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Tag the commit
+        env:
+          TAG: ${{ steps.check.outputs.tag }}
+        run: |
+          set -euo pipefail
+          # Tagged as the bot, not as a person: CI made this tag, and the run
+          # that produced it is the audit trail worth following.
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "$TAG"
+          git push origin "$TAG"
+
+      - name: Publish the GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.check.outputs.tag }}
+        run: gh release create "$TAG" --title "$TAG" --notes-file notes.md
+
+      - name: Build and push the image for the tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.check.outputs.tag }}
+        # Dispatched rather than left to the tag push above: GITHUB_TOKEN
+        # pushes do not raise push events, but workflow_dispatch always starts
+        # a run. Running it against the tag ref is what makes the semver and
+        # `latest` tags come out right.
+        run: gh workflow run publish.yml --ref "$TAG"

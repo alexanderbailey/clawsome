@@ -9,11 +9,22 @@ will be called out here.
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-07-26
+
 ### Added
 
 - Container images published to `ghcr.io/alexanderbailey/clawsome` on every push
   to `main` and on version tags, so Docker no longer requires cloning and
   building. `latest` moves only on tagged releases.
+- A `Release` workflow that tags a commit, publishes the GitHub release from the
+  matching changelog section, and builds the image for the tag — so cutting a
+  release no longer needs a checkout and a local `git push`.
+
+### Changed
+
+- README leads with watching rather than automating, compares Clawsome against
+  the tools it will be measured against, and says plainly when to use something
+  else.
 
 ## [0.1.0] — 2026-07-25
 
@@ -82,5 +93,6 @@ shows the work happening live in a dashboard.
 - End-to-end test suite driving real servers against real browsers, run in CI on
   every push.
 
-[Unreleased]: https://github.com/alexanderbailey/clawsome/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/alexanderbailey/clawsome/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/alexanderbailey/clawsome/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/alexanderbailey/clawsome/releases/tag/v0.1.0
