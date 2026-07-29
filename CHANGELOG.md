@@ -7,27 +7,8 @@ All notable changes to this project are recorded here. The format follows
 Until 1.0.0 the API may still change between minor versions; anything breaking
 will be called out here.
 
-## [Unreleased]
+## v0.1.0 (2026-07-26)
 
-## [0.1.1] — 2026-07-26
-
-### Added
-
-- Container images published to `ghcr.io/alexanderbailey/clawsome` on every push
-  to `main` and on version tags, so Docker no longer requires cloning and
-  building. `latest` moves only on tagged releases.
-- Releases are cut by merging. When a push to `main` lands a version in
-  `pyproject.toml` that has no tag yet, the `Release` workflow tags the commit,
-  publishes the GitHub release from the matching changelog section, and builds
-  the image for the tag. No checkout, no local `git push`.
-
-### Changed
-
-- README leads with watching rather than automating, compares Clawsome against
-  the tools it will be measured against, and says plainly when to use something
-  else.
-
-## [0.1.0] — 2026-07-25
 
 First tagged release. Clawsome drives headless Chromium over a REST API and
 shows the work happening live in a dashboard.
@@ -93,7 +74,3 @@ shows the work happening live in a dashboard.
   `navigation` or `error`, with the page's URL — instead of bare `500`s.
 - End-to-end test suite driving real servers against real browsers, run in CI on
   every push.
-
-[Unreleased]: https://github.com/alexanderbailey/clawsome/compare/v0.1.1...HEAD
-[0.1.1]: https://github.com/alexanderbailey/clawsome/compare/v0.1.0...v0.1.1
-[0.1.0]: https://github.com/alexanderbailey/clawsome/releases/tag/v0.1.0
