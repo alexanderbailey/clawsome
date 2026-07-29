@@ -1,6 +1,6 @@
 [project]
 name = "clawsome"
-version = "0.1.1"
+version = "0.1.0"
 description = "Drive headless Chromium over a REST API and watch it live in a dashboard"
 requires-python = ">=3.12"
 dependencies = [
@@ -21,6 +21,48 @@ dev = [
     "pytest>=8.3.0",
     "pytest-timeout>=2.3.0",
 ]
+
+[tool.commitizen]
+name = "cz_customize"
+version_provider = "pep621"
+tag_format = "v$version"
+update_changelog_on_bump = true
+# Pre-1.0: a breaking change bumps the minor, rather than jumping to 1.0.0.
+major_version_zero = true
+
+[tool.commitizen.customize]
+# Which gitmoji cut a release, and how far the version moves. A commit whose
+# gitmoji is not listed here does not release at all — that is how docs, tests
+# and formatting merge without producing a version nobody asked for.
+bump_pattern = "^(💥|✨|🔌|🔐|📐|⏳|🖱️|🕰️|🔍|🐛|🚑|🔒|⚡️|♻️|🐳|🔧|⬆️|💄|🪵|🗑️|🔗)"
+
+# What appears in the changelog. Wider than the bump list, so documentation
+# shows up in release notes without producing a release of its own — and
+# narrow enough that merge commits and chores stay out.
+changelog_pattern = "^(💥|✨|🔌|🔐|📐|⏳|🖱️|🕰️|🔍|🐛|🚑|🔒|⚡️|♻️|🐳|🔧|⬆️|💄|🪵|🗑️|🔗|📝)"
+
+[tool.commitizen.customize.bump_map]
+"💥" = "MAJOR"   # breaking change
+"✨" = "MINOR"   # new feature
+"🔌" = "MINOR"   # new integration
+"🔐" = "MINOR"   # authentication
+"📐" = "MINOR"   # new configuration surface
+"⏳" = "MINOR"   # lifecycle behaviour
+"🖱️" = "MINOR"  # new browser actions
+"🕰️" = "MINOR"  # new view
+"🔍" = "MINOR"   # new endpoint
+"🐛" = "PATCH"   # bug fix
+"🚑" = "PATCH"   # hotfix
+"🔒" = "PATCH"   # security fix
+"⚡️" = "PATCH"  # performance
+"♻️" = "PATCH"  # refactor
+"🐳" = "PATCH"   # docker
+"🔧" = "PATCH"   # configuration
+"⬆️" = "PATCH"  # dependency bump
+"💄" = "PATCH"   # ui
+"🪵" = "PATCH"   # logging
+"🗑️" = "PATCH"  # removal
+"🔗" = "PATCH"   # links and navigation
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
