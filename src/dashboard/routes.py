@@ -114,6 +114,9 @@ async def context_view(request: Request, ctx_id: str):
             "context": context,
             "screenshots": screenshots,
             "logs": recent,
+            # The mini-log refetches on reconnect, and needs to trim the full
+            # history back to what this page renders.
+            "mini_log_limit": MINI_LOG_LIMIT,
             **_back(from_),
         },
     )
