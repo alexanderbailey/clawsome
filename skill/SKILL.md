@@ -99,6 +99,8 @@ Every `goto` and `exec` response also includes the page's current `url` and `tit
 curl -s $CLAWSOME_URL/api/contexts/CONTEXT_ID/screenshot --output screenshot.png
 ```
 
+Then open the saved file and look at it. A snapshot gives the page's text and selectors but says nothing about how it renders, so viewing the screenshot is what catches a cookie banner covering the content, an image that never loaded, or a layout that breaks at the current viewport.
+
 ### Log progress
 
 ```bash
@@ -133,6 +135,7 @@ Always destroy contexts when tasks are complete to free resources.
 
 - Always create a context before performing any browser actions.
 - Take a snapshot after navigating to an unfamiliar page instead of guessing selectors.
+- Look at a screenshot when the task depends on how the page appears rather than what it says.
 - Use profiles to reach pages behind a login the operator has already set up (e.g. `staging`, an internal tool, their own account on a service).
 - Drive sites the operator owns or is authorized to automate. If a task looks like it targets someone else's site, or the page presents a bot check or anything else indicating automation isn't welcome, stop and tell the user rather than working around it.
 - Log each significant step so the dashboard stays informative.
