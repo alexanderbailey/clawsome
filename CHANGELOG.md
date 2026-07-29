@@ -7,6 +7,16 @@ All notable changes to this project are recorded here. The format follows
 Until 1.0.0 the API may still change between minor versions; anything breaking
 will be called out here.
 
+## v0.1.1 (2026-07-29)
+
+
+- 🔧 Release from commitizen on merge to main
+- 🔧 Sync the lockfile with the version reset
+- 🔧 Derive releases from gitmoji with commitizen
+- 📝 Lead with watching and say plainly when not to use Clawsome
+- 📝 Position Clawsome against the browser tools people already know
+- 🐳 Publish container images to GHCR on main and version tags
+
 ## v0.1.0 (2026-07-26)
 
 
