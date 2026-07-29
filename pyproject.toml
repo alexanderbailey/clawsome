@@ -42,6 +42,12 @@ bump_pattern = "^(💥|✨|🔌|🔐|📐|⏳|🖱️|🕰️|🔍|🐛|🚑|�
 # narrow enough that merge commits and chores stay out.
 changelog_pattern = "^(💥|✨|🔌|🔐|📐|⏳|🖱️|🕰️|🔍|🐛|🚑|🔒|⚡️|♻️|🐳|🔧|⬆️|💄|🪵|🗑️|🔗|📝)"
 
+# Reads the gitmoji as the change type so entries can be grouped, without
+# consuming it — the lookahead leaves it in the message, so it still shows in
+# the entry as well as choosing the section.
+commit_parser = "^(?=(?P<change_type>💥|✨|🔌|🔐|📐|⏳|🖱️|🕰️|🔍|🐛|🚑|🔒|⚡️|♻️|🐳|🔧|⬆️|💄|🪵|🗑️|🔗|📝))(?P<message>.*)"
+change_type_order = ["Breaking", "Added", "Fixed", "Changed", "Documentation"]
+
 [tool.commitizen.customize.bump_map]
 "💥" = "MAJOR"   # breaking change
 "✨" = "MINOR"   # new feature
@@ -64,6 +70,31 @@ changelog_pattern = "^(💥|✨|🔌|🔐|📐|⏳|🖱️|🕰️|🔍|🐛|�
 "🪵" = "PATCH"   # logging
 "🗑️" = "PATCH"  # removal
 "🔗" = "PATCH"   # links and navigation
+
+# Which section of the changelog each gitmoji lands in.
+[tool.commitizen.customize.change_type_map]
+"💥" = "Breaking"
+"✨" = "Added"
+"🔌" = "Added"
+"🔐" = "Added"
+"📐" = "Added"
+"⏳" = "Added"
+"🖱️" = "Added"
+"🕰️" = "Added"
+"🔍" = "Added"
+"🐛" = "Fixed"
+"🚑" = "Fixed"
+"🔒" = "Fixed"
+"⚡️" = "Changed"
+"♻️" = "Changed"
+"🐳" = "Changed"
+"🔧" = "Changed"
+"⬆️" = "Changed"
+"💄" = "Changed"
+"🪵" = "Changed"
+"🗑️" = "Changed"
+"🔗" = "Changed"
+"📝" = "Documentation"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

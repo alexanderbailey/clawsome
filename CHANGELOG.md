@@ -9,13 +9,17 @@ will be called out here.
 
 ## v0.1.1 (2026-07-29)
 
+### Changed
 
 - 🔧 Release from commitizen on merge to main
 - 🔧 Sync the lockfile with the version reset
 - 🔧 Derive releases from gitmoji with commitizen
+- 🐳 Publish container images to GHCR on main and version tags
+
+### Documentation
+
 - 📝 Lead with watching and say plainly when not to use Clawsome
 - 📝 Position Clawsome against the browser tools people already know
-- 🐳 Publish container images to GHCR on main and version tags
 
 ## v0.1.0 (2026-07-26)
 
