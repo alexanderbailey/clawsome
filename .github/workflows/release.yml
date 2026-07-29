@@ -49,9 +49,13 @@ jobs:
 
           # A new version with no notes is a mistake worth failing on: it means
           # a bump reached main without anyone saying what changed.
-          pattern=$(printf '%s' "$version" | sed 's/\./\\./g')
-          awk -v pat="^## \\[$pattern\\]" '
-            $0 ~ pat { found = 1; next }
+          #
+          # Matched as a literal prefix rather than a regex. Passing an escaped
+          # pattern through -v is not portable: awk interprets escapes in the
+          # assignment, so gawk turns "\[0\.1\.1\]" into "[0.1.1]" — a character
+          # class that never matches the heading — while mawk leaves it alone.
+          awk -v head="## [$version]" '
+            index($0, head) == 1 { found = 1; next }
             found && /^## / { exit }
             found { print }
           ' CHANGELOG.md > notes.md
