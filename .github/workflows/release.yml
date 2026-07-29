@@ -1,14 +1,19 @@
 name: Release
 
-# Cut a release without needing a laptop: tags the current commit, publishes a
-# GitHub release using the changelog entry as its notes, and builds the image.
+# Merging is the release button. When a push to main lands a version in
+# pyproject.toml that has no tag yet, this cuts that release: tags the commit,
+# publishes the GitHub release from the matching changelog section, and builds
+# the image. Every other push to main is a no-op.
 on:
+  push:
+    branches: [main]
+  # Manual re-run, for a release that failed partway. The version still comes
+  # from pyproject.toml, so there is only ever one source of truth.
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Version to release, without the leading v (e.g. 0.1.1)"
-        required: true
-        type: string
+
+concurrency:
+  # Two merges in quick succession must not race to create the same tag.
+  group: release
 
 jobs:
   release:
@@ -24,35 +29,27 @@ jobs:
         with:
           fetch-depth: 0   # tags, so an existing one can be detected
 
-      - name: Check the release is ready
+      - name: Work out whether there is a release to cut
         id: check
-        env:
-          VERSION: ${{ inputs.version }}
         run: |
           set -euo pipefail
 
-          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
-            echo "::error::version must look like 1.2.3, got '$VERSION'"
+          version=$(grep -m1 '^version = ' pyproject.toml | cut -d'"' -f2)
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::pyproject.toml version must look like 1.2.3, got '$version'"
             exit 1
           fi
-          tag="v$VERSION"
+          tag="v$version"
 
           if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
-            echo "::error::$tag already exists. Releases are not re-cut; bump the version."
-            exit 1
+            echo "$tag is already released; nothing to do." >> "$GITHUB_STEP_SUMMARY"
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
 
-          # pyproject is the version people see in the package metadata, so it
-          # has to agree rather than being quietly left behind.
-          declared=$(grep -m1 '^version = ' pyproject.toml | cut -d'"' -f2)
-          if [ "$declared" != "$VERSION" ]; then
-            echo "::error::pyproject.toml says $declared, not $VERSION. Update it first."
-            exit 1
-          fi
-
-          # The notes are the changelog section for this version. Requiring one
-          # means the changelog cannot drift behind the releases.
-          pattern=$(printf '%s' "$VERSION" | sed 's/\./\\./g')
+          # A new version with no notes is a mistake worth failing on: it means
+          # a bump reached main without anyone saying what changed.
+          pattern=$(printf '%s' "$version" | sed 's/\./\\./g')
           awk -v pat="^## \\[$pattern\\]" '
             $0 ~ pat { found = 1; next }
             found && /^## / { exit }
@@ -60,10 +57,11 @@ jobs:
           ' CHANGELOG.md > notes.md
 
           if [ ! -s notes.md ]; then
-            echo "::error::CHANGELOG.md has no '## [$VERSION]' section. Add one first."
+            echo "::error::pyproject.toml is at $version but CHANGELOG.md has no '## [$version]' section."
             exit 1
           fi
 
+          echo "release=true" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           {
             echo "### Releasing \`$tag\` from \`$(git rev-parse --short HEAD)\`"
@@ -72,6 +70,7 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Tag the commit
+        if: steps.check.outputs.release == 'true'
         env:
           TAG: ${{ steps.check.outputs.tag }}
         run: |
@@ -84,12 +83,14 @@ jobs:
           git push origin "$TAG"
 
       - name: Publish the GitHub release
+        if: steps.check.outputs.release == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.check.outputs.tag }}
         run: gh release create "$TAG" --title "$TAG" --notes-file notes.md
 
       - name: Build and push the image for the tag
+        if: steps.check.outputs.release == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ steps.check.outputs.tag }}

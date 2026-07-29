@@ -16,9 +16,10 @@ will be called out here.
 - Container images published to `ghcr.io/alexanderbailey/clawsome` on every push
   to `main` and on version tags, so Docker no longer requires cloning and
   building. `latest` moves only on tagged releases.
-- A `Release` workflow that tags a commit, publishes the GitHub release from the
-  matching changelog section, and builds the image for the tag — so cutting a
-  release no longer needs a checkout and a local `git push`.
+- Releases are cut by merging. When a push to `main` lands a version in
+  `pyproject.toml` that has no tag yet, the `Release` workflow tags the commit,
+  publishes the GitHub release from the matching changelog section, and builds
+  the image for the tag. No checkout, no local `git push`.
 
 ### Changed
 
