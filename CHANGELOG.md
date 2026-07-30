@@ -7,6 +7,16 @@ All notable changes to this project are recorded here. The format follows
 Until 1.0.0 the API may still change between minor versions; anything breaking
 will be called out here.
 
+## v0.1.3 (2026-07-30)
+
+### Fixed
+
+- 🐛 Detect a live stream that goes silent without closing
+
+### Documentation
+
+- 📝 Tell the skill to view screenshots, not just save them
+
 ## v0.1.2 (2026-07-29)
 
 ### Changed
