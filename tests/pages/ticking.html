@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head><title>Ticking</title></head>
+  <body style="font-size: 96px; font-family: monospace;">
+    <!-- Repaints constantly, so consecutive screenshots never dedup. Lets a
+         test tell "the save floor suppressed this frame" apart from "the
+         frame was identical to the last one". -->
+    <div id="tick">0</div>
+    <script>
+      let n = 0;
+      setInterval(() => {
+        document.getElementById('tick').textContent = ++n;
+      }, 50);
+    </script>
+  </body>
+</html>
