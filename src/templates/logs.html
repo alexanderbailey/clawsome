@@ -9,6 +9,7 @@
 
 <h2 style="margin-bottom: 1rem;">Logs &mdash; {{ context_name }}</h2>
 
+<div id="log-status" class="conn-banner"></div>
 <div class="log-container" id="log-stream">
   {% if logs|length == 0 %}
     <div class="log-entry" style="color: var(--text-muted);">No logs yet.</div>
@@ -23,23 +24,9 @@
 
 <script>
   (function() {
-    const container = document.getElementById('log-stream');
-    const id = '{{ context_id }}';
-    liveUpdates('/sse/updates', ['log:new'], (type, data) => {
-      if (data.contextId !== id) return;
-      const div = document.createElement('div');
-      div.className = 'log-entry log-' + (data.level || 'info');
-      const time = document.createElement('span');
-      time.className = 'log-time';
-      time.textContent = new Date().toISOString().replace('T', ' ').split('.')[0];
-      div.appendChild(time);
-      // Log text is untrusted; append it as text rather than markup.
-      div.appendChild(document.createTextNode(
-        ' [' + (data.level || 'info').toUpperCase() + '] ' + data.message));
-      container.appendChild(div);
-      container.scrollTop = container.scrollHeight;
+    liveLogs(document.getElementById('log-stream'), '{{ context_id }}', {
+      statusEl: document.getElementById('log-status'),
     });
-    container.scrollTop = container.scrollHeight;
   })();
 </script>
 

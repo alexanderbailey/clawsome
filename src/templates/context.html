@@ -66,13 +66,7 @@
 
   <script>
     (function() {
-      const container = document.getElementById('mini-logs');
-      const status = document.getElementById('mini-log-status');
-      const empty = document.getElementById('mini-log-empty');
       const id = '{{ context.id }}';
-
-      // Preloaded entries can overflow the container; show the newest.
-      container.scrollTop = container.scrollHeight;
 
       // A context can stop without this page doing anything — idle expiry, or
       // another client stopping it — so reflect that rather than showing
@@ -88,28 +82,15 @@
           document.getElementById('context-name').textContent.trim() + ' (stopped)');
       }
 
-      liveUpdates('/sse/updates', ['log:new', 'context:destroyed'], (type, data) => {
-        if (type === 'context:destroyed') {
-          if (data.id === id) markStopped();
-          return;
-        }
-        if (data.contextId !== id) return;
-        if (empty) empty.style.display = 'none';
-        const level = data.level || 'info';
-        const div = document.createElement('div');
-        div.className = 'log-entry log-' + level;
-        const time = document.createElement('span');
-        time.className = 'log-time';
-        // Server-rendered entries carry their real timestamp; live ones are
-        // arriving now, so this matches to within the round trip.
-        time.textContent = new Date().toISOString().replace('T', ' ').split('.')[0];
-        div.appendChild(time);
-        // Log text is untrusted; append it as text rather than markup.
-        div.appendChild(document.createTextNode(
-          ' [' + level.toUpperCase() + '] ' + data.message));
-        container.appendChild(div);
-        container.scrollTop = container.scrollHeight;
-      }, (state) => status.setAttribute('data-conn', state));
+      liveLogs(document.getElementById('mini-logs'), id, {
+        emptyEl: document.getElementById('mini-log-empty'),
+        limit: {{ mini_log_limit }},
+        statusEl: document.getElementById('mini-log-status'),
+        types: ['context:destroyed'],
+        onEvent: (type, data) => {
+          if (type === 'context:destroyed' && data.id === id) markStopped();
+        },
+      });
     })();
   </script>
 {% else %}
