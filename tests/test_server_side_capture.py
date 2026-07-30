@@ -4,6 +4,8 @@ Nothing in this file opens the dashboard, a screenshot WebSocket, or the GET
 screenshot endpoint — the frames have to arrive on the server's own initiative.
 """
 
+import time
+
 import pytest
 
 from conftest import Client, start_server, stop_server
@@ -149,3 +151,44 @@ def eventually_more_than(client, ctx_id, count, timeout=10.0):
             return seen
         time.sleep(0.25)
     return seen
+
+
+@pytest.fixture(scope="module")
+def floored_server():
+    """Captures far more often than frames are allowed to reach disk."""
+    proc, base = start_server({
+        "CLAWSOME_CAPTURE_INTERVAL": "0.2",
+        "CLAWSOME_SCREENSHOT_MIN_SAVE_INTERVAL": "30",
+    })
+    yield base
+    stop_server(proc)
+
+
+def test_the_save_floor_caps_a_short_capture_interval(floored_server, site):
+    """The floor is configurable, and it bounds the capture interval.
+
+    Worth pinning by name: the setting spent a release reachable only by an
+    undocumented variable, so a rename that silently stopped applying would
+    look exactly like normal operation from the outside.
+    """
+    client = Client(floored_server)
+    ctx = client.create_context(name="floored")
+    try:
+        # Navigating forces a frame past the floor, so history starts at one.
+        client.goto(ctx["id"], f"{site}/ticking.html")
+        eventually_nonempty(client, ctx["id"])
+        start = len(shots(client, ctx["id"]))
+
+        # Several capture intervals, none of which may reach disk.
+        time.sleep(2)
+        assert len(shots(client, ctx["id"])) == start, (
+            "timed captures wrote frames despite a 30s save floor")
+
+        # The page repaints constantly, so a forced frame still lands — proof
+        # the captures above were suppressed by the floor and not by the hash
+        # dedup, which would have swallowed them either way.
+        client.exec(ctx["id"], action="scroll", value="bottom")
+        after = eventually_more_than(client, ctx["id"], start)
+        assert after > start, "a forced frame should ignore the floor"
+    finally:
+        client.delete(f"/api/contexts/{ctx['id']}")

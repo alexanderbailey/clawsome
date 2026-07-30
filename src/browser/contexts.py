@@ -17,7 +17,13 @@ _screenshots: dict[str, bytes] = {}
 
 # Throttle disk saves: id -> last save timestamp
 _last_save: dict[str, float] = {}
-_SAVE_INTERVAL = float(os.environ.get("CLAWSOME_SCREENSHOT_INTERVAL", "1.0"))  # minimum seconds between saves per context
+
+# Floor on how often a frame reaches disk, per context. Timed captures are
+# subject to it, so this also caps the effective CLAWSOME_CAPTURE_INTERVAL:
+# setting that below this value captures more often but saves no more. Frames
+# written on their own initiative — after a goto or exec, or uploaded by an
+# external context — are forced past it.
+MIN_SAVE_INTERVAL = float(os.environ.get("CLAWSOME_SCREENSHOT_MIN_SAVE_INTERVAL", "1.0"))
 
 # Dedup disk saves: id -> hash of last saved frame
 _last_hash: dict[str, str] = {}
@@ -106,7 +112,7 @@ async def run_screenshot_sweeper():
 
 def _save_screenshot(ctx_id: str, png: bytes, *, force: bool = False):
     now = time.time()
-    if not force and ctx_id in _last_save and (now - _last_save[ctx_id]) < _SAVE_INTERVAL:
+    if not force and ctx_id in _last_save and (now - _last_save[ctx_id]) < MIN_SAVE_INTERVAL:
         return
     digest = hashlib.sha256(png).hexdigest()
     if _last_hash.get(ctx_id) == digest:

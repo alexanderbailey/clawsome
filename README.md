@@ -245,6 +245,8 @@ All endpoints are under `/api/`. If `CLAWSOME_TOKEN` is set, every request needs
 
 The server records the screenshot history itself: a frame after every `goto` and `exec`, plus a periodic capture every `CLAWSOME_CAPTURE_INTERVAL` seconds (default `3`, `0` disables). History is therefore complete whether or not anyone had the dashboard open at the time, and identical frames are still skipped. External contexts are untouched — they push their own frames.
 
+Timed captures are also floored by `CLAWSOME_SCREENSHOT_MIN_SAVE_INTERVAL` seconds (default `1`), which caps how much history a short capture interval can actually produce: setting `CLAWSOME_CAPTURE_INTERVAL` below the floor captures more often but saves no more. Frames written after a `goto` or `exec` ignore it, so per-action history stays exact at any setting.
+
 Context metadata also carries `created_at` and `last_activity`. A context with no API activity for `CLAWSOME_CONTEXT_TTL` seconds (default `1800`, `0` disables) is destroyed automatically, so a client that crashes or forgets to clean up doesn't leak a Chromium page. The expiry is written to the context's log stream, so the dashboard shows why it stopped. Any API request touching a context resets its timer.
 
 ### Browser Actions
