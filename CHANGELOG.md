@@ -7,6 +7,12 @@ All notable changes to this project are recorded here. The format follows
 Until 1.0.0 the API may still change between minor versions; anything breaking
 will be called out here.
 
+## v0.1.5 (2026-08-04)
+
+### Changed
+
+- 🔧 Watch dependencies with Dependabot so updates stop drifting
+
 ## v0.1.4 (2026-07-30)
 
 ### Fixed
