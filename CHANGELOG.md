@@ -7,6 +7,16 @@ All notable changes to this project are recorded here. The format follows
 Until 1.0.0 the API may still change between minor versions; anything breaking
 will be called out here.
 
+## v0.1.6 (2026-08-04)
+
+### Fixed
+
+- 🐛 Declare httpx, which the MCP server imports directly
+
+### Changed
+
+- 🐳 Pin the uv build image instead of tracking latest
+
 ## v0.1.5 (2026-08-04)
 
 ### Changed
