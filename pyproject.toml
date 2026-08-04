@@ -13,7 +13,13 @@ dependencies = [
 
 [project.optional-dependencies]
 mcp = [
-    "mcp>=1.2.0",
+    # Capped: 2.0 replaces the FastMCP server this module is written against
+    # (mcp.server.fastmcp is gone, superseded by mcp.server.MCPServer), so the
+    # upgrade is a rewrite rather than a bump. Tracked separately.
+    "mcp>=1.2.0,<2",
+    # Imported directly by src/mcp_server.py. It arrives transitively through
+    # mcp today, which is not a promise mcp makes — declare what we import.
+    "httpx>=0.28",
 ]
 
 [dependency-groups]
