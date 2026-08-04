@@ -1,0 +1,38 @@
+# Dependency updates. Nothing else watches these, so drift is only noticed when
+# something breaks: the CI actions were several majors behind before anyone
+# looked, and the first run only warned because the runtime under them had been
+# deprecated.
+#
+# Every update now arrives as a pull request that runs the end-to-end suite
+# against a real browser, so a bump that breaks the API is caught before merge
+# rather than after.
+version: 2
+
+updates:
+  # The ecosystem that would have caught the drift above.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # Seven actions across two workflows, and a bump is almost always
+      # trivial. One pull request a week reads better than seven.
+      actions:
+        patterns:
+          - "*"
+
+  # pyproject.toml and uv.lock. This is its own ecosystem and not a flavour of
+  # "pip"; the wrong key fails silently, by simply never opening a pull request.
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+
+  # The Dockerfile's base image. It carries the OS packages and the Python
+  # runtime the published image ships, so it ages the same way the rest of this
+  # file exists to prevent — and unlike a library, nothing in the test suite
+  # fails when it falls behind.
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
