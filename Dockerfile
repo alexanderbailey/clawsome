@@ -2,7 +2,10 @@ FROM python:3.12-slim-bookworm
 
 WORKDIR /app
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+# Pinned, not :latest — a floating tag silently changes the build tool between
+# builds, which is the same reproducibility `uv sync --frozen` is protecting
+# two lines below. Dependabot keeps this current.
+COPY --from=ghcr.io/astral-sh/uv:0.12.1 /uv /usr/local/bin/uv
 
 COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen --no-dev && \
