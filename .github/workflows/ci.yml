@@ -49,3 +49,60 @@ jobs:
 
       - name: Check the JavaScript parses
         run: node --check src/public/live.js && node --check reporter/fixture.js
+
+  image:
+    name: Docker image
+    runs-on: ubuntu-latest
+    # A cold build installs Chromium and its system libraries; a warm one only
+    # recopies the source.
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build the image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          # Into the runner's own daemon, so the next step can start it.
+          load: true
+          tags: clawsome:ci
+          # Read this job's cache first, then fall back to whatever a release
+          # build left behind. Write only to our own scope, so a pull request
+          # cannot evict the cache a release depends on. Runs on main populate
+          # the cache that pull requests then read.
+          cache-from: |
+            type=gha,scope=ci
+            type=gha
+          cache-to: type=gha,mode=max,scope=ci
+
+      - name: Check the image runs
+        run: |
+          docker run -d --name smoke -p 3000:3000 clawsome:ci
+          # Building only proves the image assembles. The app launches Chromium
+          # during startup and exits if it cannot, so /health answering at all
+          # means the base image's browser and system libraries work — which is
+          # the failure a base image bump actually produces.
+          for _ in $(seq 1 60); do
+            if [ "$(docker inspect -f '{{.State.Running}}' smoke)" != "true" ]; then
+              echo "the container exited during startup" >&2
+              docker logs smoke >&2
+              exit 1
+            fi
+            if curl -fsS http://localhost:3000/health > /dev/null; then
+              echo "the image starts and serves /health"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "the container never answered /health" >&2
+          docker logs smoke >&2
+          exit 1
+
+      - name: Stop the container
+        if: always()
+        run: docker rm -f smoke || true
