@@ -25,7 +25,7 @@ jobs:
         with:
           fetch-depth: 0   # commitizen reads history back to the last tag
 
-      - uses: astral-sh/setup-uv@v9.0.0
+      - uses: astral-sh/setup-uv@v10.0.1
 
       - name: Bump the version if the commits warrant one
         id: bump
